@@ -25,7 +25,7 @@ class OfflineCatalogueImportTest {
         assertFalse("The offline app must not request internet access.", Manifest.permission.INTERNET in requestedPermissions)
         assertFalse(
             "Local decks must not be included in Android cloud/device backup.",
-            context.applicationInfo.flags and ApplicationInfo.FLAG_ALLOW_BACKUP != 0
+            (context.applicationInfo.flags and ApplicationInfo.FLAG_ALLOW_BACKUP) != 0
         )
 
         val database = DuelMastersDatabaseProvider.get(context)
