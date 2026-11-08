@@ -10,6 +10,9 @@ class CardCatalogRepository(private val dao: CardDao) {
         type: String = "",
         civilization: String = "",
         maxCost: Int? = null,
+        race: String = "",
+        setCode: String = "",
+        rarity: String = "",
         limit: Int = 50,
         offset: Int = 0
     ): Flow<List<CardEntity>> = dao.search(
@@ -17,6 +20,9 @@ class CardCatalogRepository(private val dao: CardDao) {
         type = type,
         civilization = civilization,
         maxCost = maxCost,
+        race = race,
+        setCode = setCode,
+        rarity = rarity,
         limit = limit.coerceIn(1, 200),
         offset = offset.coerceAtLeast(0)
     )
