@@ -36,6 +36,8 @@ import com.duelmasters.game.engine.DuelMastersEngine
 import com.duelmasters.game.engine.GameAction
 import com.duelmasters.game.engine.GameCard
 import com.duelmasters.game.engine.GameState
+import com.duelmasters.game.engine.DeckValidator
+import org.json.JSONArray
 import com.duelmasters.game.engine.ActionResult
 import kotlinx.coroutines.delay
 import org.json.JSONArray
@@ -45,10 +47,23 @@ private enum class MatchMode { AI, LOCAL }
 @Composable
 fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier) {
     val catalog by remember(database) {
-        database.cardDao().search("", "", "", null, "", "", "", 500, 0)
+        database.cardDao().search("", "", "", null, "", "", "", 5000, 0)
     }.collectAsState(initial = emptyList())
     val playableCards = remember(catalog) { catalog.mapNotNull { it.toGameCard() } }
     val starterDeck = remember(playableCards) { playableCards.distinctBy { it.name.trim().lowercase() }.take(40) }
+    val savedDecks by remember(database) { database.deckDao().observeAll() }.collectAsState(initial = emptyList())
+    var selectedDeckId by remember { mutableStateOf(-1L) }
+    val selectedSavedDeck = savedDecks.firstOrNull { it.id == selectedDeckId } ?: savedDecks.firstOrNull()
+    val cardById = remember(playableCards) { playableCards.associateBy { it.id } }
+    val selectedDeckCards = remember(selectedSavedDeck, cardById) {
+        selectedSavedDeck?.let { saved ->
+            runCatching {
+                val ids = JSONArray(saved.cardIdsJson)
+                (0 until ids.length()).mapNotNull { cardById[ids.optString(it)] }
+            }.getOrDefault(emptyList())
+        } ?: starterDeck
+    }
+    val selectedDeckValidation = remember(selectedDeckCards) { DeckValidator.validate(selectedDeckCards) }
     var mode by remember { mutableStateOf(MatchMode.AI) }
     var game by remember { mutableStateOf<GameState?>(null) }
     var message by remember { mutableStateOf("Choose a mode and start a match.") }
@@ -83,17 +98,27 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
                 if (mode == MatchMode.LOCAL) Button(onClick = { mode = MatchMode.LOCAL }) { Text("Local 2 Player") }
                 else OutlinedButton(onClick = { mode = MatchMode.LOCAL }) { Text("Local 2 Player") }
             }
-            Text("Playable card definitions: ${playableCards.size} • Unique-name starter cards: ${starterDeck.size}")
-            Text("The match screen currently uses a temporary 40-card starter deck drawn from the offline catalogue. Saved deck selection and editing are being added next.")
+            Text("Playable card definitions: ${playableCards.size}")
+            if (savedDecks.isNotEmpty()) {
+                Text("Choose a saved deck", style = MaterialTheme.typography.titleSmall)
+                savedDecks.forEach { saved ->
+                    val count = runCatching { JSONArray(saved.cardIdsJson).length() }.getOrDefault(0)
+                    if (selectedSavedDeck?.id == saved.id) Button(onClick = { selectedDeckId = saved.id }) { Text("${saved.name} • $count") }
+                    else OutlinedButton(onClick = { selectedDeckId = saved.id }) { Text("${saved.name} • $count") }
+                }
+            } else {
+                Text("No saved deck selected. A temporary 40-card starter deck from the catalogue will be used.")
+            }
+            Text("Selected deck: ${selectedDeckCards.size} cards • ${if (selectedDeckValidation.isValid) "valid" else selectedDeckValidation.errors.joinToString()}", style = MaterialTheme.typography.bodySmall)
             Button(
                 onClick = {
-                    if (starterDeck.size >= 40) {
-                        val deck = starterDeck
+                    if (selectedDeckValidation.isValid) {
+                        val deck = selectedDeckCards
                         game = DuelMastersEngine.newGame(deck, deck, "Player 1", if (mode == MatchMode.AI) "AI" else "Player 2")
                         message = "Match started."
-                    } else message = "The imported catalogue does not currently contain 40 playable creature/spell definitions."
+                    } else message = "The selected deck is invalid. Check the minimum 40-card size and four-copy limit."
                 },
-                enabled = starterDeck.size >= 40
+                enabled = selectedDeckValidation.isValid
             ) { Text("Start match") }
             Text(message, style = MaterialTheme.typography.bodySmall)
         } else {
