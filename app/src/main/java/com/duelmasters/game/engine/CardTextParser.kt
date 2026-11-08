@@ -112,6 +112,8 @@ object CardTextParser {
         ) return "METADATA_ONLY"
         if (cardType == "EVOLUTION_CREATURE" && evolutionRace(rulesText) == null) return "METADATA_ONLY"
         val text = normalize(rulesText)
+        val hasEvolutionClause = text.split(Regex("[.;\\n]+")).any { it.trim().startsWith("evolution") }
+        if (hasEvolutionClause && cardType != "EVOLUTION_CREATURE") return "METADATA_ONLY"
         if (text.isBlank()) return "SUPPORTED"
         val clauses = text.split(Regex("[.;\\n]+"))
             .map { it.trim().trim(',', ':', '—', '-') }

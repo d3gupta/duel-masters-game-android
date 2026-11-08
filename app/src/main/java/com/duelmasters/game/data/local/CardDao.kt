@@ -54,6 +54,12 @@ interface CardDao {
 
     @Query("""
         SELECT * FROM cards
+        ORDER BY type COLLATE NOCASE, name COLLATE NOCASE, cardId
+    """)
+    suspend fun getAllCards(): List<CardEntity>
+
+    @Query("""
+        SELECT * FROM cards
         WHERE implementationStatus <> 'SUPPORTED'
         ORDER BY type COLLATE NOCASE, name COLLATE NOCASE, cardId
     """)

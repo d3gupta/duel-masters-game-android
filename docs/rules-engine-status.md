@@ -16,7 +16,11 @@ players and AI; actions are validated by the same immutable state machine.
 - Five opening cards and five shields per player; turn draw, deck-out loss, one mana
   charge per turn, mana payment, untap and turn progression.
 - Paper mana payment checks each printed civilization using a distinct source card;
-  multicolored sources enter tapped and five-civilization sources provide zero numeric mana.
+  a multicolored source can satisfy only one civilization. Multicolored cards enter
+  mana tapped; five-civilization sources provide zero numeric mana but can satisfy
+  one civilization requirement.
+- Evolution keeps the source creature's tapped/untapped state and ongoing temporary
+  power modifiers; the evolution creature itself has no summoning sickness.
 - Summoning sickness, Speed Attacker, evolution onto a matching race, and stacked
   evolution cards moving together when destroyed or returned.
 - Attacks to shields and tapped creatures; direct victory after shields are gone.
@@ -30,7 +34,8 @@ players and AI; actions are validated by the same immutable state machine.
   boosts, and power-threshold mass destruction.
 - Temporary power modifiers expire at the end of the affected owner's next turn,
   including when created by a Shield Trigger during the opponent's turn.
-- AI Easy / Normal / Hard action policies and AI decisions for Blockers, Shield
+- AI Easy / Normal / Hard action policies, full-match simulations for all three
+  difficulties, and AI decisions for Blockers, Shield
   Triggers, and effect targets.
 - Local two-player pass-and-play pauses for private hand and defender-choice
   handoffs. Opponent hands and shield identities remain hidden.
@@ -56,6 +61,10 @@ rules interpreter.
 
 ## Known limitations before a full classic-rules release
 
+- Creature rules text that resembles a spell effect is not treated as a summon effect;
+  generic effects in the current engine resolve only for supported spells. Evolution
+  cards with Shield Trigger remain catalogue-only until the trigger can select a valid
+  evolution host.
 - Many unique card effects, when/whenever triggers, replacement effects,
   civilization-specific costs, race-specific effects beyond parsed evolution,
   attack restrictions, continuous abilities, and complicated conditional clauses

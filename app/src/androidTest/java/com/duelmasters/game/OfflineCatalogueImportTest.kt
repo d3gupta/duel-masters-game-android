@@ -42,16 +42,20 @@ class OfflineCatalogueImportTest {
         assertTrue("The import should be a local asset import.", result.imported)
 
         // Export the exact classifier result from Room; CI retrieves it as an audit artifact.
+        val allCards = dao.getAllCards()
         val catalogueOnly = dao.getCatalogueOnlyCards()
+        val supportedCount = dao.countSupportedCards()
         assertEquals(
-            "Every imported definition must be either supported or catalogue-only.",
+            "Every imported definition must be classified exactly once.",
             result.cardCount,
-            dao.countSupportedCards() + catalogueOnly.size
+            supportedCount + catalogueOnly.size
         )
+        assertEquals("The full audit must cover every imported card.", result.cardCount, allCards.size)
+
         val metadata = requireNotNull(dao.getMetadata())
-        val csv = buildString {
-            appendLine("catalog_version,card_id,name,type,cost,power,implementation_status,source_record_id,rules_text")
-            catalogueOnly.forEach { card ->
+        fun auditCsv(cards: List<com.duelmasters.game.data.local.CardEntity>): String = buildString {
+            appendLine("catalog_version,card_id,name,type,cost,power,implementation_status,source_record_id,mechanics,rules_text")
+            cards.forEach { card ->
                 val values = listOf(
                     metadata.catalogVersion.toString(),
                     card.cardId,
@@ -61,12 +65,16 @@ class OfflineCatalogueImportTest {
                     card.power.orEmpty(),
                     card.implementationStatus,
                     card.sourceRecordId,
+                    card.mechanicsJson,
                     card.rulesText
                 )
                 appendLine(values.joinToString(",") { csvField(it) })
             }
         }
-        File(context.filesDir, "card-rules-support-report.csv").writeText(csv, StandardCharsets.UTF_8)
+        File(context.filesDir, "card-rules-support-report.csv")
+            .writeText(auditCsv(catalogueOnly), StandardCharsets.UTF_8)
+        File(context.filesDir, "card-rules-support-full-report.csv")
+            .writeText(auditCsv(allCards), StandardCharsets.UTF_8)
         File(context.filesDir, "card-rules-support-summary.txt").writeText(
             "catalogVersion=${metadata.catalogVersion}\n" +
                 "totalCards=${result.cardCount}\n" +

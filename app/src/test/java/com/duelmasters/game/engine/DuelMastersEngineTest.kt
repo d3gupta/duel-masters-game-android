@@ -1,6 +1,7 @@
 package com.duelmasters.game.engine
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -421,6 +422,42 @@ class DuelMastersEngineTest {
         assertEquals("METADATA_ONLY", CardTextParser.supportStatus("CROSS_GEAR", ""))
     }
 
+    @Test fun parserDoesNotMarkUnresolvedCreatureEffectsOrWrongCardTypesPlayable() {
+        assertEquals(
+            "METADATA_ONLY",
+            CardTextParser.supportStatus("CREATURE", "Destroy one of your opponent's creatures.")
+        )
+        assertEquals(
+            "METADATA_ONLY",
+            CardTextParser.supportStatus("CREATURE", "Draw 1 card.")
+        )
+        assertEquals(
+            "METADATA_ONLY",
+            CardTextParser.supportStatus("SPELL", "This creature has Blocker.")
+        )
+        assertEquals(
+            "METADATA_ONLY",
+            CardTextParser.supportStatus(
+                "EVOLUTION_CREATURE",
+                "Evolution—Put on one of your Beast Folk creatures. Shield Trigger"
+            )
+        )
+        assertEquals(
+            "METADATA_ONLY",
+            CardTextParser.supportStatus(
+                "CREATURE", "Evolution—Put on one of your Beast Folk creatures."
+            )
+        )
+        assertEquals(
+            "SUPPORTED",
+            CardTextParser.supportStatus("CREATURE", "This creature cannot be blocked.")
+        )
+        assertEquals(
+            "SUPPORTED",
+            CardTextParser.supportStatus("SPELL", "Shield Trigger")
+        )
+    }
+
     @Test fun parserReadsEvolutionRaceAndPowerAttackerBonus() {
         assertEquals(
             "Beast Folk",
@@ -508,11 +545,19 @@ class DuelMastersEngineTest {
             GameCard("shared-card", "Water Darkness Mana", CardKind.CREATURE, 1,
                 civilizations = setOf("WATER", "DARKNESS"))
         )
+        val fireSource = CardInstance(
+            "fire", GameCard("fire-card", "Fire Mana", CardKind.CREATURE, 1,
+                civilizations = setOf("FIRE"))
+        )
         val insufficient = GameState(listOf(
-            PlayerState(0, "P1", emptyList(), hand = listOf(spell), mana = listOf(sharedSource)),
+            PlayerState(0, "P1", emptyList(), hand = listOf(spell), mana = listOf(sharedSource, fireSource)),
             PlayerState(1, "P2", emptyList())
         ))
-        assertTrue(DuelMastersEngine.apply(insufficient, GameAction.CastSpell("spell")) is ActionResult.Rejected)
+        assertEquals(2, insufficient.players[0].availableMana)
+        assertTrue(
+            "A single multicolored source cannot satisfy two civilization requirements, even when total mana is enough.",
+            DuelMastersEngine.apply(insufficient, GameAction.CastSpell("spell")) is ActionResult.Rejected
+        )
 
         val darknessSource = CardInstance("dark", GameCard("dark-card", "Darkness Mana", CardKind.CREATURE, 1,
             civilizations = setOf("DARKNESS")))
@@ -670,7 +715,7 @@ class DuelMastersEngineTest {
         assertTrue(result.players[1].battle.isEmpty())
     }
 
-    @Test fun hardAiCompletesAFullOfflineMatchThroughPendingChoices() {
+    @Test fun allAiDifficultiesCompleteFullOfflineMatchesThroughPendingChoices() {
         val definitions = listOf(
             GameCard("vanilla", "Vanilla", CardKind.CREATURE, 1, 1000),
             GameCard("fighter", "Fighter", CardKind.CREATURE, 2, 3000),
@@ -686,25 +731,29 @@ class DuelMastersEngineTest {
             GameCard("trigger-creature", "Trigger Creature", CardKind.CREATURE, 5, 4000, shieldTrigger = true)
         )
         val deck = definitions.flatMap { definition -> List(4) { definition } }
-        var state = DuelMastersEngine.newGame(deck, deck, "AI One", "AI Two")
-        var actionCount = 0
 
-        while (state.winner == null && state.turn < 80 && actionCount < 4000) {
-            val action = if (state.pendingChoice != null) {
-                DuelMastersAi.respondToChoice(state, AiDifficulty.HARD, kotlin.random.Random(actionCount))
-            } else {
-                DuelMastersAi.chooseAction(state, AiDifficulty.HARD, kotlin.random.Random(actionCount))
+        AiDifficulty.values().forEach { difficulty ->
+            var state = DuelMastersEngine.newGame(deck, deck, "AI One", "AI Two")
+            var actionCount = 0
+
+            while (state.winner == null && state.turn < 80 && actionCount < 4000) {
+                val random = kotlin.random.Random(actionCount + difficulty.ordinal * 10_000)
+                val action = if (state.pendingChoice != null) {
+                    DuelMastersAi.respondToChoice(state, difficulty, random)
+                } else {
+                    DuelMastersAi.chooseAction(state, difficulty, random)
+                }
+                assertTrue("$difficulty AI must respond to a pending choice.", action != null)
+                when (val result = DuelMastersEngine.apply(state, action!!)) {
+                    is ActionResult.Success -> state = result.state
+                    is ActionResult.Rejected -> throw AssertionError("$difficulty AI produced an illegal action: ${result.reason}")
+                }
+                actionCount++
             }
-            assertTrue("AI must always provide a response to a pending choice.", action != null)
-            when (val result = DuelMastersEngine.apply(state, action!!)) {
-                is ActionResult.Success -> state = result.state
-                is ActionResult.Rejected -> throw AssertionError("AI produced an illegal action: ${result.reason}")
-            }
-            actionCount++
+
+            assertTrue("$difficulty AI match should reach a winner before the safety cap.", state.winner != null)
+            assertTrue("$difficulty AI match should complete within the action safety cap.", actionCount < 4000)
         }
-
-        assertTrue("The simulated match should reach a winner before the safety cap.", state.winner != null)
-        assertTrue("The simulation should complete within the action safety cap.", actionCount < 4000)
     }
 
 

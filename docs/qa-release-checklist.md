@@ -6,6 +6,7 @@
 - [ ] Optimized release APK assembles with R8 and resource shrinking.
 - [ ] All JVM tests pass.
 - [ ] API 36 emulator instrumentation tests pass.
+- [ ] Debug QA APK artifact is uploaded for physical-device validation.
 - [ ] Bundled SQLite source decodes and imports into Room on a clean install.
 - [ ] Imported card and printing counts are non-zero and match the expected catalogue snapshot.
 - [ ] Playable and catalogue-only classifications are checked against a reviewed rules-text fixture.
@@ -21,26 +22,27 @@
 - [ ] Five-civilization mana has zero numeric value and can satisfy only one civilization requirement per tapped card.
 - [ ] Opening hands, shields, draw and deck-out.
 - [ ] Summoning sickness, Speed Attacker and evolution race matching.
+- [ ] Evolution inherits tapped state and ongoing temporary power modifiers.
 - [ ] Evolution stack destruction and bounce behavior.
 - [ ] Shield attacks, direct victory and Double/Triple Breaker.
 - [ ] Blocker interception, decline and multiple-blocker selection.
 - [ ] Shield Trigger use/decline and multi-shield continuation.
 - [ ] Targeted destroy/return/tap decisions and illegal target rejection.
 - [ ] Temporary power modifiers and expiry timing.
-- [ ] AI vs AI full-match simulation for all difficulty levels.
+- [ ] AI vs AI full-match simulation for Easy, Normal and Hard difficulty levels.
 - [ ] Local pass-and-play private hand transitions and decision handoffs.
-- [ ] Local player 1 and player 2 can choose separate saved decks.
+- [ ] Local player 1 and player 2 can choose separate saved decks, including a mirror match.
 - [ ] A saved deck with missing/corrupt card references is blocked rather than silently shortened.
 
 ## Device and UX verification
 
-- [ ] Install and launch on a physical Android 8.0+ device.
+- [ ] Install and launch the debug QA APK on a physical Android 8.0+ device.
 - [ ] Complete first-run import with airplane mode enabled.
-- [ ] Browse/search the full catalogue and inspect printings.
+- [ ] Browse/search the full catalogue, load additional result pages, and inspect card details and printings.
 - [ ] Create, edit, save, select and delete decks.
 - [ ] Complete solo matches at all AI difficulty levels.
 - [ ] Complete local pass-and-play matches without private-hand leakage.
-- [ ] Complete local matches with two different saved decks and verify the displayed deck identities.
+- [ ] Complete local matches with different saved decks and a mirror match; verify deck identities.
 - [ ] Verify portrait/landscape and small-screen layouts if supported.
 - [ ] Verify accessibility labels, touch target sizes, text scaling and contrast.
 - [ ] Verify process recreation/backgrounding does not corrupt local data.

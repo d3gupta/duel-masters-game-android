@@ -96,7 +96,7 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
     val selectedDeckCards = selectedDeckResolution.cards
     var selectedOpponentDeckId by remember { mutableStateOf(-1L) }
     val selectedOpponentSavedDeck = savedDecks.firstOrNull {
-        it.id == selectedOpponentDeckId && it.id != selectedSavedDeck?.id
+        it.id == selectedOpponentDeckId
     } ?: savedDecks.firstOrNull { it.id != selectedSavedDeck?.id } ?: selectedSavedDeck
     val opponentDeckResolution = remember(selectedOpponentSavedDeck, starterDeck, cardById) {
         resolveDeck(selectedOpponentSavedDeck, starterDeck, cardById)
@@ -206,8 +206,7 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
                 if (savedDecks.isEmpty()) {
                     Text("No saved decks yet; both players will use the temporary starter deck.")
                 } else {
-                    savedDecks.filter { saved -> saved.id != selectedSavedDeck?.id || savedDecks.size == 1 }
-                        .forEach { saved ->
+                    savedDecks.forEach { saved ->
                             val count = runCatching { JSONArray(saved.cardIdsJson).length() }.getOrDefault(0)
                             if (selectedOpponentSavedDeck?.id == saved.id) {
                                 Button(onClick = { selectedOpponentDeckId = saved.id }) {

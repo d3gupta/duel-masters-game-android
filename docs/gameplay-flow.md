@@ -67,7 +67,11 @@ The AI responds through the same action types as a human player. The engine vali
 
 ## Local pass-and-play deck selection
 
-Player 1 and Player 2 select their saved decks independently. If only one saved deck exists, it is used for both sides; with multiple saved decks, Player 2 can choose a different list entry. Before match creation, both decks must pass the same minimum-40/no-maximum/four-copies validator and every stored card reference must still resolve to a playable card. Missing or corrupt references disable Start instead of silently shortening a deck.
+Player 1 and Player 2 select their saved decks independently. Player 2 can choose the same deck for a mirror match or another saved deck. If only one saved deck exists, it is used for both sides. Before match creation, both decks must pass the same minimum-40/no-maximum/four-copies validator and every stored card reference must still resolve to a playable card. Missing or corrupt references disable Start instead of silently shortening a deck.
+
+## Catalogue browsing
+
+The card browser queries Room in pages of 80 entries. The Load more action retrieves the next page. Selecting a card opens a detail dialog with its type, civilization, cost, power, race, rules text and stored printing records.
 
 ## Local pass-and-play privacy
 

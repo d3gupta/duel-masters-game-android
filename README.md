@@ -7,8 +7,8 @@ An offline-first, single-device Duel Masters card game for Android, built with K
 ## What the app does
 
 - **Solo duel:** play against Easy, Normal or Hard AI.
-- **Local duel:** two people play pass-and-play on one Android device. Private-hand handoffs conceal the previous player's hand.
-- **Card catalogue:** browse and search the bundled English catalogue offline, including set/printing metadata.
+- **Local duel:** two people play pass-and-play on one Android device, select decks independently (including mirror matches), and use private-hand handoffs.
+- **Card catalogue:** browse and search the bundled English catalogue offline, page through results, and inspect card details and printing metadata.
 - **Deck builder:** create, edit, save and delete local decks.
 - **Deck rules:** at least 40 cards, no maximum size, no more than four copies of a card name (counted across printings).
 - **Rules engine:** a deterministic Kotlin state machine shared by the UI and AI. Unsupported card text is not guessed at runtime.
@@ -42,7 +42,7 @@ The exact effect patterns and known exclusions are documented in [rules-engine s
 
 Open the repository in Android Studio, sync Gradle and run the `app` configuration. First-launch catalogue import is local and does not require a network connection.
 
-For CI, release signing and the release checklist, see [release documentation](docs/release.md). CI builds debug and optimized release variants, runs JVM tests and runs an API 36 emulator catalogue-import test. A production release must be signed with the long-lived owner-controlled keystore; CI must never use a debug key.
+For CI, release signing and the release checklist, see [release documentation](docs/release.md). CI builds debug and optimized release variants, runs JVM tests and an API 36 emulator catalogue-import test. It publishes a debug QA APK for physical-device testing and a versioned full catalogue rules audit. Branch release artifacts are validation outputs, not production releases. A production release must be signed with the long-lived owner-controlled keystore; CI never uses a debug key for production.
 
 ## Project structure
 

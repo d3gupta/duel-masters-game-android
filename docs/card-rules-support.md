@@ -58,7 +58,10 @@ The current classifier rejects unsupported wording rather than guessing. Common 
 - Attack, summon, blocking or play restrictions not listed in the supported keywords.
 - Cards with a missing/negative cost, or creature cards whose printed power is not a plain integer. These remain catalogue-only rather than being treated as free/zero-power cards.
 - Cross Gear, Castle and other card types outside the current creature/spell slice.
-- Evolution cards whose source wording cannot be parsed into the supported race requirement.
+- Evolution cards whose source wording cannot be parsed into the supported race requirement, or that also have Shield Trigger (the evolution-host choice is not supported during trigger resolution).
+- Evolution requirement text attached to a non-evolution card type.
+- Creature cards whose text matches a spell-effect pattern; the current effect executor resolves those handlers only for spells.
+- Spell cards with creature-only combat keywords such as Blocker, Slayer or Speed Attacker.
 - Any card with more than one clause if at least one clause is unsupported.
 
 This is a description of parser coverage, not a claim that every unsupported wording family has been exhaustively enumerated. New source wording may reveal additional false negatives or edge cases.
@@ -88,7 +91,7 @@ GROUP BY implementationStatus
 ORDER BY implementationStatus;
 ```
 
-The database is the authoritative list for the exact bundled catalogue version. A static hard-coded list would become stale whenever the card source or parser changes. The exact names and rules text should be exported from the imported database and retained as a versioned QA report when full coverage auditing is performed.
+The CI emulator test exports `card-rules-support-report.csv` (Catalogue-only entries), `card-rules-support-full-report.csv` (all entries and their statuses), and `card-rules-support-summary.txt`. The workflow uploads these in a versioned `duel-masters-rules-coverage-<commit>` artifact. The full report includes names, types, cost, power, source IDs, metadata mechanics and exact rules text. Review all rows marked `SUPPORTED` for possible false positives as well as the Catalogue-only list for false negatives.
 
 ## How to add support safely
 

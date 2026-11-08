@@ -48,10 +48,11 @@ Use the maintained [QA and release sign-off checklist](qa-release-checklist.md) 
 - [ ] Configure the production keystore in local environment or GitHub Actions secrets.
 - [ ] Confirm the CI run passed debug build, optimized release build, JVM tests and
       emulator catalogue-import test.
-- [ ] Install the signed APK on physical Android 8.0+ devices and verify first-launch
+- [ ] Install the debug QA APK on physical Android 8.0+ devices and verify first-launch
       import, catalogue search, deck save/edit/delete, AI match, local pass-and-play,
       blocker decisions and Shield Trigger decisions.
 - [ ] Test airplane-mode operation after a clean install.
+- [ ] Treat the debug QA APK as test-only; use a production-signed release APK for distribution.
 - [ ] Verify the card-source permissions, card artwork permissions (if added later),
       app icon, store listing and Duel Masters trademark use before distribution.
 - [ ] Confirm the cards shown as playable match the intended rules/format. Unsupported
