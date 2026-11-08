@@ -40,11 +40,16 @@ fun DuelMastersApp() {
             ) {
                 if (selectedTab == "Cards") androidx.compose.material3.Button(onClick = { selectedTab = "Cards" }) { Text("Card catalogue") }
                 else androidx.compose.material3.OutlinedButton(onClick = { selectedTab = "Cards" }) { Text("Card catalogue") }
+                if (selectedTab == "Decks") androidx.compose.material3.Button(onClick = { selectedTab = "Decks" }) { Text("Decks") }
+                else androidx.compose.material3.OutlinedButton(onClick = { selectedTab = "Decks" }) { Text("Decks") }
                 if (selectedTab == "Play") androidx.compose.material3.Button(onClick = { selectedTab = "Play" }) { Text("Play") }
                 else androidx.compose.material3.OutlinedButton(onClick = { selectedTab = "Play" }) { Text("Play") }
             }
-            if (selectedTab == "Cards") CardCatalogueScreen(modifier = Modifier.weight(1f))
-            else GameplayScreen(database = database, modifier = Modifier.weight(1f))
+            when (selectedTab) {
+                "Cards" -> CardCatalogueScreen(modifier = Modifier.weight(1f))
+                "Decks" -> DeckBuilderScreen(database = database, modifier = Modifier.weight(1f))
+                else -> GameplayScreen(database = database, modifier = Modifier.weight(1f))
+            }
         }
     }
 }
