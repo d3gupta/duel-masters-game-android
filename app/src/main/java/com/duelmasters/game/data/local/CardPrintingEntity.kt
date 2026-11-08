@@ -24,5 +24,6 @@ data class CardPrintingEntity(
     val illustrator: String?,
     val releaseClass: String,
     val imageAssetKey: String?,
-    val sourceUrl: String?
+    val sourceUrl: String?,
+    val sourceRecordId: String
 )
