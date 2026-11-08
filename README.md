@@ -13,6 +13,8 @@ An offline-first Duel Masters card game for Android. The Android client is desig
 - Room database with a versioned migration that preserves saved decks.
 - Bundled English Duel Masters SQLite card source, imported locally into Room.
 - Searchable card browser with name and rules-text search.
+- Initial battlefield screen for AI and local pass-and-play, using catalogue-derived cards.
+- Basic deck validation: minimum 40 cards, no maximum size, and at most four copies per card name.
 - First platform-independent rules-engine slice: game setup, zones, mana charging, summoning, summoning sickness, basic combat and shield breaking.
 - Baseline AI action policy using the same game-action model.
 - Card and printing records retain set, collector number, rarity and official/community/promotional provenance.
@@ -51,9 +53,9 @@ duel-masters-game-android/
 - [x] Add Room card, printing, collection and catalogue-metadata tables.
 - [x] Add searchable offline card browser.
 - [x] Add the initial rules-engine slice and unit tests; full classic rules coverage remains in progress.
-- [ ] Build deck creation, validation and saved-deck management.
-- [ ] Implement single-player AI at three difficulty levels.
-- [ ] Implement local two-player pass-and-play.
+- [ ] Build full deck creation, editing and saved-deck management (validator is in place; match screen currently uses a temporary starter deck).
+- [ ] Expand baseline AI into Easy / Normal / Hard difficulty levels.
+- [x] Add initial local two-player pass-and-play handoff UI; private-hand polish and complete rules are still in progress.
 - [ ] Add card effect coverage and mark verified mechanics accurately.
 
 ## License
