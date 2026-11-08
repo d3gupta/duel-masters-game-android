@@ -3,7 +3,7 @@
 ## Build outputs
 
 The Android app uses application ID com.duelmasters.game, minimum Android API 26,
-target Android API 36, Java 17 and version 1.0.0.
+target Android API 36, Java 17 and version 1.0.0. The Android module declares no internet permission and has Android backup disabled.
 
 CI runs:
 

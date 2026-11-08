@@ -1,6 +1,6 @@
 # Duel Masters Game (Android)
 
-An offline-first Duel Masters card game for Android. The Android client is designed for airplane-mode use and does not request network access.
+An offline-first Duel Masters card game for Android. The Android client is designed for airplane-mode use, does not request internet access, and disables Android app-data backup so saved decks remain local.
 
 ## Planned game modes
 

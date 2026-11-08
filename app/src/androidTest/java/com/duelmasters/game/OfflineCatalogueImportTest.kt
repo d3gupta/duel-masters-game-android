@@ -1,11 +1,15 @@
 package com.duelmasters.game
 
+import android.Manifest
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.duelmasters.game.data.catalog.CardCatalogImporter
 import com.duelmasters.game.data.local.DuelMastersDatabaseProvider
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -15,6 +19,15 @@ class OfflineCatalogueImportTest {
     @Test
     fun bundledCatalogueImportsIntoRoomWithoutNetworkAccess() = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val requestedPermissions = context.packageManager
+            .getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS)
+            .requestedPermissions.orEmpty()
+        assertFalse("The offline app must not request internet access.", Manifest.permission.INTERNET in requestedPermissions)
+        assertFalse(
+            "Local decks must not be included in Android cloud/device backup.",
+            context.applicationInfo.flags and ApplicationInfo.FLAG_ALLOW_BACKUP != 0
+        )
+
         val database = DuelMastersDatabaseProvider.get(context)
         val result = CardCatalogImporter(context, database).importIfNeeded(force = true)
 
