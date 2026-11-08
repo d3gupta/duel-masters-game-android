@@ -76,7 +76,7 @@ object DuelMastersEngine {
     }
 
     private fun makePlayer(id: Int, name: String, cards: List<GameCard>): PlayerState {
-        val instances = cards.mapIndexed { index, card -> CardInstance("$id-$index", card) }
+        val instances = cards.shuffled().mapIndexed { index, card -> CardInstance("$id-$index", card) }
         return PlayerState(id, name, instances)
     }
 
