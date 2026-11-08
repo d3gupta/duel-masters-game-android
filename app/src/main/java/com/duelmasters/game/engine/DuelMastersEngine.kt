@@ -40,6 +40,7 @@ data class GameState(
     val activePlayer: Int = 0,
     val turn: Int = 1,
     val firstTurn: Boolean = true,
+    val manaChargedThisTurn: Boolean = false,
     val winner: Int? = null,
     val log: List<String> = emptyList()
 )
@@ -102,15 +103,17 @@ object DuelMastersEngine {
                     },
                     activePlayer = nextId,
                     turn = state.turn + 1,
-                    firstTurn = false
+                    firstTurn = false,
+                    manaChargedThisTurn = false
                 )
                 next = next.copy(players = next.players.map { p -> if (p.id == nextId) p.copy(mana = p.mana.map { it.copy(tapped = false) }, battle = p.battle.map { it.copy(tapped = false) }) else p })
                 next = draw(next, nextId)
                 success(next.addLog("${opponent.name}'s turn begins."))
             }
             is GameAction.ChargeMana -> {
+                if (state.manaChargedThisTurn) return reject("You may charge only one mana card per turn.")
                 val card = player.hand.find { it.instanceId == action.handInstanceId } ?: return reject("That card is not in your hand.")
-                success(state.replace(player.copy(hand = player.hand - card, mana = player.mana + card.copy(tapped = false))).addLog("${card.card.name} charged to mana."))
+                success(state.replace(player.copy(hand = player.hand - card, mana = player.mana + card.copy(tapped = false))).copy(manaChargedThisTurn = true).addLog("${card.card.name} charged to mana."))
             }
             is GameAction.Summon -> {
                 val card = player.hand.find { it.instanceId == action.handInstanceId } ?: return reject("That card is not in your hand.")
