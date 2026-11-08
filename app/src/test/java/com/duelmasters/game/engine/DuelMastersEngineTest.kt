@@ -140,7 +140,9 @@ class DuelMastersEngineTest {
             PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
             PlayerState(1, "P2", emptyList(), shields = listOf(CardInstance("trigger-1", trigger)))
         ))
-        val result = DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success
+        val declared = (DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success).state
+        assertTrue(declared.pendingChoice is PendingChoice.ShieldTrigger)
+        val result = DuelMastersEngine.apply(declared, GameAction.ResolveShieldTrigger(true)) as ActionResult.Success
         assertEquals(1, result.state.players[1].battle.size)
         assertTrue(result.state.players[1].hand.isEmpty())
         assertEquals(0, result.state.players[1].mana.size)
@@ -155,7 +157,8 @@ class DuelMastersEngineTest {
             PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
             PlayerState(1, "P2", listOf(drawn), shields = listOf(CardInstance("trigger-1", trigger)))
         ))
-        val result = DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success
+        val declared = (DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success).state
+        val result = DuelMastersEngine.apply(declared, GameAction.ResolveShieldTrigger(true)) as ActionResult.Success
         assertEquals("Drawn Card", result.state.players[1].hand.single().card.name)
         assertEquals("Trigger Spell", result.state.players[1].graveyard.single().card.name)
     }
@@ -168,7 +171,9 @@ class DuelMastersEngineTest {
             PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
             PlayerState(1, "P2", emptyList(), shields = listOf(shield), battle = listOf(blocker))
         ))
-        val result = DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success
+        val declared = (DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success).state
+        assertTrue(declared.pendingChoice is PendingChoice.Blocker)
+        val result = DuelMastersEngine.apply(declared, GameAction.ChooseBlocker("blocker")) as ActionResult.Success
         assertEquals(1, result.state.players[1].shields.size)
         assertTrue(result.state.players[0].battle.isEmpty())
     }
@@ -216,7 +221,8 @@ class DuelMastersEngineTest {
             PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
             PlayerState(1, "P2", listOf(drawCard), shields = listOf(CardInstance("trigger-1", trigger)))
         ))
-        val attacked = (DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success).state
+        val declared = (DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success).state
+        val attacked = (DuelMastersEngine.apply(declared, GameAction.ResolveShieldTrigger(true)) as ActionResult.Success).state
         assertTrue(attacked.players[1].battle.single().summoningSick)
         val nextTurn = (DuelMastersEngine.apply(attacked, GameAction.EndTurn) as ActionResult.Success).state
         assertTrue(!nextTurn.players[1].battle.single().summoningSick)
@@ -251,7 +257,8 @@ class DuelMastersEngineTest {
             PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
             PlayerState(1, "P2", emptyList(), battle = listOf(blocker))
         ))
-        val result = DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success
+        val declared = (DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success).state
+        val result = DuelMastersEngine.apply(declared, GameAction.ChooseBlocker("blocker")) as ActionResult.Success
         assertTrue(result.state.winner == null)
         assertTrue(result.state.players[0].battle.isEmpty())
         assertEquals(1, result.state.players[1].battle.size)
@@ -283,7 +290,8 @@ class DuelMastersEngineTest {
             PlayerState(1, "P2", listOf(drawCard), battle = listOf(friendly),
                 shields = listOf(CardInstance("trigger-shield", triggerSpell)))
         ))
-        val afterShield = (DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success).state
+        val declared = (DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success).state
+        val afterShield = (DuelMastersEngine.apply(declared, GameAction.ResolveShieldTrigger(true)) as ActionResult.Success).state
         assertEquals(3000, afterShield.players[1].battle.single().currentPower)
         val ownersTurn = (DuelMastersEngine.apply(afterShield, GameAction.EndTurn) as ActionResult.Success).state
         assertEquals(3000, ownersTurn.players[1].battle.single().currentPower)
@@ -295,5 +303,109 @@ class DuelMastersEngineTest {
         val keywords = CardTextParser.keywords("", setOf("Shield Trigger"))
         assertTrue("SHIELD_TRIGGER" in keywords)
     }
+
+    @Test fun defenderCanDeclineAShieldTriggerAndTakeTheCardIntoHand() {
+        val attacker = CardInstance("attacker", GameCard("a", "Attacker", CardKind.CREATURE, 1), summoningSick = false)
+        val shieldCard = GameCard("trigger", "Trigger Spell", CardKind.SPELL, 5, shieldTrigger = true,
+            effects = listOf(CardEffect(EffectKind.DRAW_CARDS)))
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
+            PlayerState(1, "P2", emptyList(), shields = listOf(CardInstance("shield", shieldCard)))
+        ))
+        val declared = (DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success).state
+        val declined = (DuelMastersEngine.apply(declared, GameAction.ResolveShieldTrigger(false)) as ActionResult.Success).state
+        assertEquals("Trigger Spell", declined.players[1].hand.single().card.name)
+        assertTrue(declined.players[1].graveyard.isEmpty())
+        assertTrue(declined.players[1].deck.isEmpty())
+    }
+
+    @Test fun defenderChoosesWhichOfSeveralBlockersIntercepts() {
+        val attacker = CardInstance("attacker", GameCard("a", "Attacker", CardKind.CREATURE, 1, 3000), summoningSick = false)
+        val first = CardInstance("first", GameCard("f", "First Blocker", CardKind.CREATURE, 1, 1000, keywords = setOf("BLOCKER")))
+        val second = CardInstance("second", GameCard("s", "Second Blocker", CardKind.CREATURE, 1, 5000, keywords = setOf("BLOCKER")))
+        val shield = CardInstance("shield", GameCard("shield", "Shield", CardKind.CREATURE, 1))
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
+            PlayerState(1, "P2", emptyList(), shields = listOf(shield), battle = listOf(first, second))
+        ))
+        val declared = (DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success).state
+        val resolved = (DuelMastersEngine.apply(declared, GameAction.ChooseBlocker("second")) as ActionResult.Success).state
+        assertEquals(1, resolved.players[1].shields.size)
+        assertTrue(resolved.players[1].battle.none { it.instanceId == "second" })
+        assertTrue(resolved.players[1].battle.any { it.instanceId == "first" })
+        assertTrue(resolved.pendingChoice == null)
+    }
+
+    @Test fun destroyTargetEffectWaitsForChosenCreature() {
+        val spell = CardInstance("spell", GameCard("spell", "Removal", CardKind.SPELL, 1,
+            effects = listOf(CardEffect(EffectKind.DESTROY_TARGET_OPPONENT))))
+        val mana = CardInstance("mana", GameCard("mana", "Mana", CardKind.CREATURE, 1))
+        val small = CardInstance("small", GameCard("small", "Small", CardKind.CREATURE, 1, 1000))
+        val large = CardInstance("large", GameCard("large", "Large", CardKind.CREATURE, 1, 5000))
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), hand = listOf(spell), mana = listOf(mana)),
+            PlayerState(1, "P2", emptyList(), battle = listOf(small, large))
+        ))
+        val cast = (DuelMastersEngine.apply(state, GameAction.CastSpell("spell")) as ActionResult.Success).state
+        assertTrue(cast.pendingChoice is PendingChoice.EffectTarget)
+        val resolved = (DuelMastersEngine.apply(cast, GameAction.ChooseEffectTarget("large")) as ActionResult.Success).state
+        assertEquals(listOf("small"), resolved.players[1].battle.map { it.instanceId })
+        assertEquals("large", resolved.players[1].graveyard.single().instanceId)
+    }
+
+    @Test fun evolutionRequiresMatchingRaceAndCarriesTheHostCardInItsStack() {
+        val evolution = GameCard(
+            "evo", "Evolution", CardKind.CREATURE, 2, 5000,
+            races = setOf("Phoenix"), evolutionRace = "Beast Folk", isEvolution = true
+        )
+        val host = CardInstance("host", GameCard("host-card", "Host", CardKind.CREATURE, 1, 2000, races = setOf("Beast Folk")))
+        val wrongHost = CardInstance("wrong", GameCard("wrong-card", "Wrong", CardKind.CREATURE, 1, 1000, races = setOf("Guardian")))
+        val hand = CardInstance("evo-hand", evolution)
+        val mana = listOf(
+            CardInstance("m1", GameCard("m1", "M1", CardKind.CREATURE, 1)),
+            CardInstance("m2", GameCard("m2", "M2", CardKind.CREATURE, 1))
+        )
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), hand = listOf(hand), mana = mana, battle = listOf(host, wrongHost)),
+            PlayerState(1, "P2", emptyList())
+        ))
+        val rejected = DuelMastersEngine.apply(state, GameAction.Summon("evo-hand", "wrong"))
+        assertTrue(rejected is ActionResult.Rejected)
+        val summoned = (DuelMastersEngine.apply(state, GameAction.Summon("evo-hand", "host")) as ActionResult.Success).state
+        val evolved = summoned.players[0].battle.single { it.card.id == "evo" }
+        assertEquals(1, evolved.evolvedCards.size)
+        assertTrue(!evolved.summoningSick)
+        assertTrue(summoned.players[0].battle.none { it.instanceId == "host" })
+    }
+
+    @Test fun destroyingAnEvolutionCreatureMovesItsWholeStackToGraveyard() {
+        val base = CardInstance("base", GameCard("base", "Base", CardKind.CREATURE, 1, 1000))
+        val evolution = CardInstance("evo", GameCard("evo", "Evolution", CardKind.CREATURE, 3, 5000),
+            summoningSick = false, evolvedCards = listOf(base))
+        val targetSpell = CardEffect(EffectKind.DESTROY_WEAKEST_OPPONENT)
+        val spell = CardInstance("spell", GameCard("spell", "Destroy", CardKind.SPELL, 1, effects = listOf(targetSpell)))
+        val mana = CardInstance("mana", GameCard("mana", "Mana", CardKind.CREATURE, 1))
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), hand = listOf(spell), mana = listOf(mana)),
+            PlayerState(1, "P2", emptyList(), battle = listOf(evolution))
+        ))
+        val result = (DuelMastersEngine.apply(state, GameAction.CastSpell("spell")) as ActionResult.Success).state
+        assertEquals(setOf("base", "evo"), result.players[1].graveyard.map { it.instanceId }.toSet())
+    }
+
+    @Test fun aiCanChooseAValidDefensiveBlocker() {
+        val attacker = CardInstance("attacker", GameCard("a", "Attacker", CardKind.CREATURE, 1, 1000), summoningSick = false)
+        val blocker = CardInstance("blocker", GameCard("b", "Blocker", CardKind.CREATURE, 1, 3000, keywords = setOf("BLOCKER")))
+        val shield = CardInstance("shield", GameCard("shield", "Shield", CardKind.CREATURE, 1))
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
+            PlayerState(1, "P2", emptyList(), shields = listOf(shield), battle = listOf(blocker))
+        ))
+        val declared = (DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success).state
+        val response = DuelMastersAi.respondToChoice(declared, AiDifficulty.HARD)
+        assertTrue(response is GameAction.ChooseBlocker)
+        assertTrue(DuelMastersEngine.apply(declared, response!!) is ActionResult.Success)
+    }
+
 
 }
