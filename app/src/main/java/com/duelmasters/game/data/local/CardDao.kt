@@ -16,6 +16,15 @@ interface CardDao {
           AND (:type = '' OR type = :type)
           AND (:civilization = '' OR civilizationsJson LIKE '%' || :civilization || '%')
           AND (:maxCost IS NULL OR cost <= :maxCost)
+          AND (:race = '' OR racesJson LIKE '%' || :race || '%')
+          AND (:setCode = '' OR EXISTS (
+              SELECT 1 FROM card_printings p
+              WHERE p.cardId = cards.cardId AND p.setCode = :setCode
+          ))
+          AND (:rarity = '' OR EXISTS (
+              SELECT 1 FROM card_printings p
+              WHERE p.cardId = cards.cardId AND p.rarity = :rarity
+          ))
         ORDER BY name COLLATE NOCASE
         LIMIT :limit OFFSET :offset
     """)
@@ -24,6 +33,9 @@ interface CardDao {
         type: String,
         civilization: String,
         maxCost: Int?,
+        race: String,
+        setCode: String,
+        rarity: String,
         limit: Int,
         offset: Int
     ): Flow<List<CardEntity>>
