@@ -23,7 +23,8 @@ class MainActivity : ComponentActivity() {
             try {
                 withContext(Dispatchers.IO) {
                     val database = DuelMastersDatabaseProvider.get(applicationContext)
-                    CardCatalogImporter(applicationContext, database).importIfNeeded()
+                    val result = CardCatalogImporter(applicationContext, database).importIfNeeded()
+                    Log.i("DuelMasters", "Card catalogue: ${result.cardCount} definitions, ${result.printingCount} printings; imported=${result.imported}")
                 }
             } catch (error: Exception) {
                 Log.e("DuelMasters", "Unable to import bundled card catalogue", error)
