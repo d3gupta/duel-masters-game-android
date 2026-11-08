@@ -150,8 +150,8 @@ object DuelMastersEngine {
                 val defenderWon = defender.card.power > attacker.card.power
                 val p = player.copy(battle = player.battle.map { if (it.instanceId == a.instanceId) a else it })
                 val o = opponent.copy(
-                    battle = opponent.battle.filterNot { it.instanceId == defender.instanceId || (attackerWon && it.instanceId == defender.instanceId) },
-                    graveyard = opponent.graveyard + if (attackerWon || attacker.card.power == defender.card.power) defender else emptyList()
+                    battle = if (attackerWon || attacker.card.power == defender.card.power) opponent.battle.filterNot { it.instanceId == defender.instanceId } else opponent.battle,
+                    graveyard = opponent.graveyard + (if (attackerWon || attacker.card.power == defender.card.power) listOf(defender) else emptyList())
                 )
                 val p2 = if (defenderWon || attacker.card.power == defender.card.power) p.copy(battle = p.battle.filterNot { it.instanceId == attacker.instanceId }, graveyard = p.graveyard + attacker) else p
                 val o2 = if (defenderWon) o else o
