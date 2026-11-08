@@ -22,7 +22,7 @@ object BasicDuelMastersAi {
         }
         if (attacker != null) return GameAction.AttackShield(attacker.instanceId)
 
-        val manaCard = player.hand.firstOrNull()
+        val manaCard = if (!state.manaChargedThisTurn) player.hand.firstOrNull() else null
         if (manaCard != null && player.mana.size < 10) return GameAction.ChargeMana(manaCard.instanceId)
         return GameAction.EndTurn
     }
