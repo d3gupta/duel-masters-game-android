@@ -72,4 +72,28 @@ class GameEngineTest {
         assertTrue(result.state.player(1).battle.single().tapped)
     }
 
+    @Test fun untappedNonBlockerCannotBeAttackedDirectly() {
+        val attacker = CardInstance(card = creature("Attacker"))
+        val target = CardInstance(card = creature("Target"))
+        val state = GameState(listOf(
+            PlayerState(1, emptyList(), battle = listOf(attacker)),
+            PlayerState(2, emptyList(), battle = listOf(target))
+        ))
+        val result = GameEngine.attack(state, attacker.instanceId, target.instanceId)
+        assertTrue(result is GameResult.Rejected)
+    }
+
+    @Test fun blockerCanStopDirectAttackEvenWhenNoShieldsRemain() {
+        val attacker = CardInstance(card = creature("Attacker", power = 1000))
+        val blocker = CardInstance(card = creature("Blocker", setOf(Ability.BLOCKER), power = 3000))
+        val state = GameState(listOf(
+            PlayerState(1, emptyList(), battle = listOf(attacker)),
+            PlayerState(2, emptyList(), battle = listOf(blocker))
+        ))
+        val result = GameEngine.attack(state, attacker.instanceId) as GameResult.Success
+        assertEquals(null, result.state.winner)
+        assertTrue(result.state.player(1).battle.isEmpty())
+        assertEquals(1, result.state.player(2).battle.size)
+    }
+
 }
