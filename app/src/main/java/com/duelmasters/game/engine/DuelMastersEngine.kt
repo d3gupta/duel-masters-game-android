@@ -560,7 +560,7 @@ object DuelMastersEngine {
         val defenderPlayer = initial.players[defenderPlayerId]
         val attacker = attackerPlayer.battle.firstOrNull { it.instanceId == attackerInstanceId } ?: return initial
         val defender = defenderPlayer.battle.firstOrNull { it.instanceId == defenderInstanceId } ?: return initial
-        val attackPower = attacker.currentPower + attacker.card.powerAttackBonus
+        val attackPower = attacker.currentPower + maxOf(attacker.card.powerAttackBonus, if ("POWER_ATTACKER_2000" in attacker.card.keywords) 2000 else 0)
         val defensePower = defender.currentPower
         val attackerDies = attackPower <= defensePower || SLAYER in defender.card.keywords
         val defenderDies = attackPower >= defensePower || SLAYER in attacker.card.keywords

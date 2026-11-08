@@ -20,6 +20,7 @@ class OfflineCatalogueImportTest {
 
         assertTrue("The bundled catalogue should contain card definitions.", result.cardCount > 0)
         assertTrue("The bundled catalogue should contain printings.", result.printingCount > 0)
+        assertTrue("At least ten supported definitions are required for the starter deck.", database.cardDao().countSupportedCards() >= 10)
         assertEquals(result.cardCount, database.cardDao().countCards())
         assertEquals(result.printingCount, database.cardDao().countPrintings())
         assertTrue("The import should be a local asset import.", result.imported)

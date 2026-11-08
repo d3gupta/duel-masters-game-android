@@ -66,15 +66,15 @@ object DuelMastersAi {
                 val selected = when (difficulty) {
                     AiDifficulty.EASY -> blockers.random(random)
                     AiDifficulty.NORMAL -> blockers.maxByOrNull {
-                        val canKill = it.currentPower + it.card.powerAttackBonus >= attacker.currentPower
+                        val canKill = it.currentPower + maxOf(it.card.powerAttackBonus, if ("POWER_ATTACKER_2000" in it.card.keywords) 2000 else 0) >= attacker.currentPower
                         (if (canKill) 100 else 0) + it.currentPower / 100
-                    }?.takeIf { it.currentPower + it.card.powerAttackBonus >= attacker.currentPower }
+                    }?.takeIf { it.currentPower + maxOf(it.card.powerAttackBonus, if ("POWER_ATTACKER_2000" in it.card.keywords) 2000 else 0) >= attacker.currentPower }
                     AiDifficulty.HARD -> blockers.maxByOrNull {
-                        val attackerDies = it.currentPower + it.card.powerAttackBonus >= attacker.currentPower || "SLAYER" in it.card.keywords
-                        val blockerDies = attacker.currentPower + attacker.card.powerAttackBonus >= it.currentPower || "SLAYER" in attacker.card.keywords
+                        val attackerDies = it.currentPower + maxOf(it.card.powerAttackBonus, if ("POWER_ATTACKER_2000" in it.card.keywords) 2000 else 0) >= attacker.currentPower || "SLAYER" in it.card.keywords
+                        val blockerDies = attacker.currentPower + maxOf(attacker.card.powerAttackBonus, if ("POWER_ATTACKER_2000" in attacker.card.keywords) 2000 else 0) >= it.currentPower || "SLAYER" in attacker.card.keywords
                         (if (attackerDies) 1000 else 0) - (if (blockerDies) 300 else 0) + it.currentPower / 100
                     }?.takeIf {
-                        it.currentPower + it.card.powerAttackBonus >= attacker.currentPower ||
+                        it.currentPower + maxOf(it.card.powerAttackBonus, if ("POWER_ATTACKER_2000" in it.card.keywords) 2000 else 0) >= attacker.currentPower ||
                             "SLAYER" in it.card.keywords
                     }
                 }

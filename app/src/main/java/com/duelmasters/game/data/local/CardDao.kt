@@ -49,6 +49,9 @@ interface CardDao {
     @Query("SELECT COUNT(*) FROM cards")
     suspend fun countCards(): Int
 
+    @Query("SELECT COUNT(*) FROM cards WHERE implementationStatus = 'SUPPORTED' AND type IN ('CREATURE', 'SPELL', 'EVOLUTION_CREATURE')")
+    suspend fun countSupportedCards(): Int
+
     @Query("SELECT COUNT(*) FROM card_printings")
     suspend fun countPrintings(): Int
 

@@ -55,7 +55,7 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
         database.cardDao().search("", "", "", null, "", "", "", 5000, 0)
     }.collectAsState(initial = emptyList())
     val playableCards = remember(catalog) { catalog.mapNotNull { it.toGameCard() } }
-    val starterDeck = remember(playableCards) { playableCards.distinctBy { it.name.trim().lowercase() }.take(40) }
+    val starterDeck = remember(playableCards) { playableCards.distinctBy { it.name.trim().lowercase() }.take(10).flatMap { card -> List(4) { card } } }
     val savedDecks by remember(database) { database.deckDao().observeAll() }.collectAsState(initial = emptyList())
     var selectedDeckId by remember { mutableStateOf(-1L) }
     val selectedSavedDeck = savedDecks.firstOrNull { it.id == selectedDeckId } ?: savedDecks.firstOrNull()
@@ -224,13 +224,13 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
                         }.forEach { blocker ->
                             Button(onClick = {
                                 submit(GameAction.ChooseBlocker(blocker.instanceId), state,
-                                    onSuccess = { game = it; revealedChoiceKey = null; message = "Blocker chosen." },
+                                    onSuccess = { game = it; revealedChoiceKey = it.pendingChoice?.toString(); message = "Blocker chosen." },
                                     onFailure = { message = it })
                             }) { Text("Block with " + blocker.card.name + " (" + blocker.currentPower + ")") }
                         }
                         OutlinedButton(onClick = {
                             submit(GameAction.ChooseBlocker(null), state,
-                                onSuccess = { game = it; revealedChoiceKey = null; message = "Attack not blocked." },
+                                onSuccess = { game = it; revealedChoiceKey = it.pendingChoice?.toString(); message = "Attack not blocked." },
                                 onFailure = { message = it })
                         }) { Text("Do not block") }
                     }
@@ -243,12 +243,12 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
                         }
                         Button(onClick = {
                             submit(GameAction.ResolveShieldTrigger(true), state,
-                                onSuccess = { game = it; revealedChoiceKey = null; message = "Shield Trigger used." },
+                                onSuccess = { game = it; revealedChoiceKey = it.pendingChoice?.toString(); message = "Shield Trigger used." },
                                 onFailure = { message = it })
                         }) { Text("Use Shield Trigger for free") }
                         OutlinedButton(onClick = {
                             submit(GameAction.ResolveShieldTrigger(false), state,
-                                onSuccess = { game = it; revealedChoiceKey = null; message = "Shield added to hand." },
+                                onSuccess = { game = it; revealedChoiceKey = it.pendingChoice?.toString(); message = "Shield added to hand." },
                                 onFailure = { message = it })
                         }) { Text("Add shield to hand") }
                     }
@@ -259,7 +259,7 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
                         }.forEach { target ->
                             Button(onClick = {
                                 submit(GameAction.ChooseEffectTarget(target.instanceId), state,
-                                    onSuccess = { game = it; revealedChoiceKey = null; message = target.card.name + " selected." },
+                                    onSuccess = { game = it; revealedChoiceKey = it.pendingChoice?.toString(); message = target.card.name + " selected." },
                                     onFailure = { message = it })
                             }) { Text(target.card.name + " • Power " + target.currentPower) }
                         }

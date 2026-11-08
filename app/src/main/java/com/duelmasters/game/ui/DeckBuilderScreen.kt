@@ -74,6 +74,7 @@ fun DeckBuilderScreen(database: DuelMastersDatabase, modifier: Modifier = Modifi
             singleLine = true
         )
         Text("Cards: ${selectedCards.size} • Unique names: ${selectedCards.map { it.name.lowercase() }.distinct().size}")
+        Text("Only rules-supported cards are eligible for decks. Unsupported cards remain available in the searchable catalogue until their effects are implemented.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
         Text(
             "Only rules-supported cards are deck-eligible. ${unsupportedCount} catalogue entries remain browse-only until their effects are implemented.",
             style = MaterialTheme.typography.bodySmall,
