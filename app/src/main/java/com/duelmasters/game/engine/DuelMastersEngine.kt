@@ -57,7 +57,6 @@ sealed class GameAction {
     data class CastSpell(val handInstanceId: String) : GameAction()
     data class AttackShield(val attackerInstanceId: String) : GameAction()
     data class AttackCreature(val attackerInstanceId: String, val defenderInstanceId: String) : GameAction()
-    data class Block(val blockerInstanceId: String) : GameAction()
 }
 
 sealed class ActionResult {
@@ -178,7 +177,6 @@ object DuelMastersEngine {
                 val blocker = opponent.battle.firstOrNull { BLOCKER in it.card.keywords && !it.tapped }?.takeIf { UNBLOCKABLE !in attacker.card.keywords }
                 success(resolveBattle(state, player, opponent, attacker, blocker ?: defender).addLog("${attacker.card.name} attacked ${(blocker ?: defender).card.name}."))
             }
-            is GameAction.Block -> reject("Blockers resolve automatically when an attack is declared.")
         }
     }
 
