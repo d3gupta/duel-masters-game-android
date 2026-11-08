@@ -221,4 +221,26 @@ class DuelMastersEngineTest {
         assertTrue(!nextTurn.players[1].battle.single().summoningSick)
     }
 
+    @Test fun tripleBreakerBreaksUpToThreeShields() {
+        val attacker = CardInstance("attacker", GameCard("triple", "Triple", CardKind.CREATURE, 1, 5000,
+            keywords = setOf("TRIPLE_BREAKER")), summoningSick = false)
+        val shields = (1..3).map { n -> CardInstance("s$n", GameCard("s$n", "Shield $n", CardKind.CREATURE, 1)) }
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
+            PlayerState(1, "P2", emptyList(), shields = shields)
+        ))
+        val result = DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success
+        assertEquals(0, result.state.players[1].shields.size)
+        assertEquals(3, result.state.players[1].hand.size)
+    }
+
+    @Test fun allAiDifficultiesChooseActionsAcceptedByTheEngine() {
+        val deck = List(40) { index -> GameCard("ai-$index", "AI Card $index", CardKind.CREATURE, 1, 1000) }
+        val state = DuelMastersEngine.newGame(deck, deck)
+        AiDifficulty.values().forEach { difficulty ->
+            val action = DuelMastersAi.chooseAction(state, difficulty, kotlin.random.Random(7))
+            assertTrue(DuelMastersEngine.apply(state, action) is ActionResult.Success)
+        }
+    }
+
 }
