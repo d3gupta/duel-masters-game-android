@@ -3,14 +3,14 @@
 ## Build outputs
 
 The Android app uses application ID com.duelmasters.game, minimum Android API 26,
-Java 17 and version 1.0.0.
+target Android API 36, Java 17 and version 1.0.0.
 
 CI runs:
 
 1. :app:assembleDebug
 2. :app:assembleRelease (R8 minification and resource shrinking enabled)
 3. :app:testDebugUnitTest
-4. :app:connectedDebugAndroidTest on an API 35 emulator, including a forced offline
+4. :app:connectedDebugAndroidTest on an API 36 emulator, including a forced offline
    import of the bundled SQLite catalogue into Room.
 
 The release APK is uploaded as a GitHub Actions artifact for 30 days.

@@ -43,10 +43,16 @@ jobs:
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -n 1)"
           yes | "$SDKMANAGER" --licenses
 
+      - name: Install Android API 36 SDK
+        shell: bash
+        run: |
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -n 1)"
+          yes | "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" "platform-tools" "emulator" "system-images;android-36;google_apis;x86_64"
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.9"
+          gradle-version: "8.11.1"
 
       - name: Restore optional release signing key
         shell: bash
@@ -62,7 +68,7 @@ jobs:
       - name: Run on-device catalogue import test
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 36
           arch: x86_64
           disable-animations: true
           script: gradle --no-daemon :app:connectedDebugAndroidTest
