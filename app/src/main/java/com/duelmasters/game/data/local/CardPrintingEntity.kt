@@ -13,7 +13,7 @@ import androidx.room.Index
         childColumns = ["cardId"],
         onDelete = ForeignKey.CASCADE
     )],
-    indices = [Index("setCode"), Index("collectorNumber")]
+    indices = [Index("cardId"), Index("setCode"), Index("collectorNumber")]
 )
 data class CardPrintingEntity(
     val cardId: String,
