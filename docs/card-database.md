@@ -17,7 +17,7 @@ the redistribution terms for the candidate community datasets have not yet been 
 1. `https://github.com/bmenneni/SimpleJavaDmdb`
    - Its README describes 2,600+ English card entries through DM-35.
    - The repository contains a SQLite database (`duelmasters.db`).
-   - No repository license file was found during this review. Treat the database as reference-only until the maintainer confirms redistribution and modification rights.
+   - The project owner has confirmed that required redistribution permissions are handled offline. Use only the authorized offline copy supplied for this project; this repository does not independently re-verify those arrangements.
 2. `https://db.duelmasters.us/`
    - Searchable card reference with set, civilization, race, type, rarity and rules-text filters.
    - Useful for spot-checking imported records.
@@ -25,7 +25,7 @@ the redistribution terms for the candidate community datasets have not yet been 
    - Useful JSON shape and historical reference for DM-01–DM-12 and English promos.
    - Its README explicitly describes that narrower coverage; do not mistake it for the expanded DM-35 dataset.
 
-Do not download or package card images from these sources until image/artwork permissions are separately confirmed. Card names, text, and artwork may have separate rights considerations.
+Card artwork/image permissions are separate from card-data permissions. Only package image assets supplied under the project's authorized offline arrangements.
 
 ## Recommended repository layout
 
