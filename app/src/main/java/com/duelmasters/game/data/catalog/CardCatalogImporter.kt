@@ -14,7 +14,7 @@ import org.json.JSONArray
 import java.io.File
 import java.io.FileOutputStream
 
-private const val CATALOG_VERSION = 5
+private const val CATALOG_VERSION = 6
 private const val SOURCE_REPOSITORY = "https://github.com/bmenneni/SimpleJavaDmdb"
 
 /** Imports the bundled English SQLite catalogue into Room. All work is offline. */
@@ -44,7 +44,14 @@ class CardCatalogImporter(
                 rulesText = card.rulesText,
                 flavorText = null,
                 mechanicsJson = JSONArray(card.mechanics).toString(),
-                implementationStatus = CardTextParser.supportStatus(card.type, card.rulesText, card.mechanics.toSet()),
+                implementationStatus = CardTextParser.supportStatus(
+                    card.type,
+                    card.rulesText,
+                    card.mechanics.toSet(),
+                    cost = card.cost,
+                    powerText = card.power,
+                    requireCoreStats = true
+                ),
                 effectDefinitionIdsJson = "[]",
                 sourceName = "SimpleJavaDmdb",
                 sourceUrl = SOURCE_REPOSITORY,
@@ -185,7 +192,9 @@ class CardCatalogImporter(
         getColumnIndex(column).takeIf { it >= 0 }?.let { if (isNull(it)) null else getString(it) }
 
     private fun Cursor.intOrNull(column: String): Int? =
-        getColumnIndex(column).takeIf { it >= 0 }?.let { if (isNull(it)) null else getInt(it) }
+        getColumnIndex(column).takeIf { it >= 0 }?.let { index ->
+            if (isNull(index)) null else getString(index)?.trim()?.toIntOrNull()
+        }
 
     private fun normalizeSetCode(raw: String): String {
         val match = Regex("(?i)dm[-_ ]?(\\d+)").find(raw)

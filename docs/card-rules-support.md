@@ -56,6 +56,7 @@ The current classifier rejects unsupported wording rather than guessing. Common 
 - Effects affecting both players, multiple zones or an unspecified player.
 - Race/civilization restrictions or interactions beyond the parsed evolution host race.
 - Attack, summon, blocking or play restrictions not listed in the supported keywords.
+- Cards with a missing/negative cost, or creature cards whose printed power is not a plain integer. These remain catalogue-only rather than being treated as free/zero-power cards.
 - Cross Gear, Castle and other card types outside the current creature/spell slice.
 - Evolution cards whose source wording cannot be parsed into the supported race requirement.
 - Any card with more than one clause if at least one clause is unsupported.

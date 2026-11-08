@@ -7,6 +7,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.duelmasters.game.data.catalog.CardCatalogImporter
 import com.duelmasters.game.data.local.DuelMastersDatabaseProvider
+import java.io.File
+import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -30,12 +32,51 @@ class OfflineCatalogueImportTest {
 
         val database = DuelMastersDatabaseProvider.get(context)
         val result = CardCatalogImporter(context, database).importIfNeeded(force = true)
+        val dao = database.cardDao()
 
         assertTrue("The bundled catalogue should contain card definitions.", result.cardCount > 0)
         assertTrue("The bundled catalogue should contain printings.", result.printingCount > 0)
-        assertTrue("At least ten supported definitions are required for the starter deck.", database.cardDao().countSupportedCards() >= 10)
-        assertEquals(result.cardCount, database.cardDao().countCards())
-        assertEquals(result.printingCount, database.cardDao().countPrintings())
+        assertTrue("At least ten supported definitions are required for the starter deck.", dao.countSupportedCards() >= 10)
+        assertEquals(result.cardCount, dao.countCards())
+        assertEquals(result.printingCount, dao.countPrintings())
         assertTrue("The import should be a local asset import.", result.imported)
+
+        // Export the exact classifier result from Room; CI retrieves it as an audit artifact.
+        val catalogueOnly = dao.getCatalogueOnlyCards()
+        assertEquals(
+            "Every imported definition must be either supported or catalogue-only.",
+            result.cardCount,
+            dao.countSupportedCards() + catalogueOnly.size
+        )
+        val metadata = requireNotNull(dao.getMetadata())
+        val csv = buildString {
+            appendLine("catalog_version,card_id,name,type,cost,power,implementation_status,source_record_id,rules_text")
+            catalogueOnly.forEach { card ->
+                val values = listOf(
+                    metadata.catalogVersion.toString(),
+                    card.cardId,
+                    card.name,
+                    card.type,
+                    card.cost?.toString().orEmpty(),
+                    card.power.orEmpty(),
+                    card.implementationStatus,
+                    card.sourceRecordId,
+                    card.rulesText
+                )
+                appendLine(values.joinToString(",") { csvField(it) })
+            }
+        }
+        File(context.filesDir, "card-rules-support-report.csv").writeText(csv, StandardCharsets.UTF_8)
+        File(context.filesDir, "card-rules-support-summary.txt").writeText(
+            "catalogVersion=${metadata.catalogVersion}\n" +
+                "totalCards=${result.cardCount}\n" +
+                "playableCards=${dao.countSupportedCards()}\n" +
+                "catalogueOnlyCards=${catalogueOnly.size}\n" +
+                "printings=${result.printingCount}\n",
+            StandardCharsets.UTF_8
+        )
     }
 }
+
+private fun csvField(value: String): String =
+    "\"" + value.replace("\"", "\"\"") + "\""

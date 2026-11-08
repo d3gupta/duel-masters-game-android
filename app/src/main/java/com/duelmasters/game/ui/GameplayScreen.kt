@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.duelmasters.game.data.local.CardEntity
+import com.duelmasters.game.data.local.DeckEntity
 import com.duelmasters.game.data.local.DuelMastersDatabase
 import com.duelmasters.game.engine.ActionResult
 import com.duelmasters.game.engine.AiDifficulty
@@ -49,6 +50,35 @@ import org.json.JSONArray
 
 private enum class MatchMode { AI, LOCAL }
 
+private data class DeckResolution(
+    val cards: List<GameCard>,
+    val missingCardCount: Int = 0,
+    val corrupt: Boolean = false
+) {
+    val isComplete: Boolean get() = missingCardCount == 0 && !corrupt
+}
+
+private fun resolveDeck(
+    savedDeck: DeckEntity?,
+    fallback: List<GameCard>,
+    cardById: Map<String, GameCard>
+): DeckResolution {
+    if (savedDeck == null) return DeckResolution(fallback)
+    return runCatching {
+        val ids = JSONArray(savedDeck.cardIdsJson)
+        val resolved = ArrayList<GameCard>(ids.length())
+        var missing = 0
+        repeat(ids.length()) { index ->
+            val id = ids.optString(index)
+            val card = cardById[id]
+            if (card == null) missing++ else resolved += card
+        }
+        DeckResolution(resolved, missingCardCount = missing)
+    }.getOrElse {
+        DeckResolution(emptyList(), corrupt = true)
+    }
+}
+
 @Composable
 fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier) {
     val catalog by remember(database) {
@@ -60,15 +90,20 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
     var selectedDeckId by remember { mutableStateOf(-1L) }
     val selectedSavedDeck = savedDecks.firstOrNull { it.id == selectedDeckId } ?: savedDecks.firstOrNull()
     val cardById = remember(playableCards) { playableCards.associateBy { it.id } }
-    val selectedDeckCards = remember(selectedSavedDeck, cardById) {
-        selectedSavedDeck?.let { saved ->
-            runCatching {
-                val ids = JSONArray(saved.cardIdsJson)
-                (0 until ids.length()).mapNotNull { cardById[ids.optString(it)] }
-            }.getOrDefault(emptyList())
-        } ?: starterDeck
+    val selectedDeckResolution = remember(selectedSavedDeck, starterDeck, cardById) {
+        resolveDeck(selectedSavedDeck, starterDeck, cardById)
     }
+    val selectedDeckCards = selectedDeckResolution.cards
+    var selectedOpponentDeckId by remember { mutableStateOf(-1L) }
+    val selectedOpponentSavedDeck = savedDecks.firstOrNull {
+        it.id == selectedOpponentDeckId && it.id != selectedSavedDeck?.id
+    } ?: savedDecks.firstOrNull { it.id != selectedSavedDeck?.id } ?: selectedSavedDeck
+    val opponentDeckResolution = remember(selectedOpponentSavedDeck, starterDeck, cardById) {
+        resolveDeck(selectedOpponentSavedDeck, starterDeck, cardById)
+    }
+    val opponentDeckCards = opponentDeckResolution.cards
     val deckValidation = remember(selectedDeckCards) { DeckValidator.validate(selectedDeckCards) }
+    val opponentDeckValidation = remember(opponentDeckCards) { DeckValidator.validate(opponentDeckCards) }
 
     var mode by remember { mutableStateOf(MatchMode.AI) }
     var difficulty by remember { mutableStateOf(AiDifficulty.NORMAL) }
@@ -147,17 +182,69 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
                     }
                 }
             } else Text("No saved deck selected. A temporary starter deck will be used.")
+            if (selectedDeckResolution.corrupt) {
+                Text(
+                    "The selected saved deck data is invalid. Open Decks, rebuild or resave it before starting.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            } else if (selectedDeckResolution.missingCardCount > 0) {
+                Text(
+                    "${selectedDeckResolution.missingCardCount} saved card entries are no longer playable or present in the catalogue. Edit and resave this deck before starting.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
             Text(
-                "Selected deck: " + selectedDeckCards.size + " cards • " +
+                "Player 1 deck: " + selectedDeckCards.size + " cards • " +
                     (if (deckValidation.isValid) "valid" else deckValidation.errors.joinToString()),
                 style = MaterialTheme.typography.bodySmall,
                 color = if (deckValidation.isValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
             )
+            if (mode == MatchMode.LOCAL) {
+                Text("Choose Player 2 deck", style = MaterialTheme.typography.titleSmall)
+                if (savedDecks.isEmpty()) {
+                    Text("No saved decks yet; both players will use the temporary starter deck.")
+                } else {
+                    savedDecks.filter { saved -> saved.id != selectedSavedDeck?.id || savedDecks.size == 1 }
+                        .forEach { saved ->
+                            val count = runCatching { JSONArray(saved.cardIdsJson).length() }.getOrDefault(0)
+                            if (selectedOpponentSavedDeck?.id == saved.id) {
+                                Button(onClick = { selectedOpponentDeckId = saved.id }) {
+                                    Text(saved.name + " • " + count)
+                                }
+                            } else {
+                                OutlinedButton(onClick = { selectedOpponentDeckId = saved.id }) {
+                                    Text(saved.name + " • " + count)
+                                }
+                            }
+                        }
+                }
+                if (opponentDeckResolution.corrupt) {
+                    Text("Player 2's saved deck data is invalid. Rebuild or resave it before starting.",
+                        color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                } else if (opponentDeckResolution.missingCardCount > 0) {
+                    Text(
+                        "${opponentDeckResolution.missingCardCount} Player 2 card entries are no longer playable or present in the catalogue.",
+                        color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                Text(
+                    "Player 2 deck: " + opponentDeckCards.size + " cards • " +
+                        (if (opponentDeckValidation.isValid) "valid" else opponentDeckValidation.errors.joinToString()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (opponentDeckValidation.isValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                )
+            }
+            val canStart = deckValidation.isValid && selectedDeckResolution.isComplete &&
+                (mode != MatchMode.LOCAL ||
+                    (opponentDeckValidation.isValid && opponentDeckResolution.isComplete))
             Button(
-                enabled = deckValidation.isValid,
+                enabled = canStart,
                 onClick = {
+                    val secondDeck = if (mode == MatchMode.AI) starterDeck else opponentDeckCards
                     game = DuelMastersEngine.newGame(
-                        selectedDeckCards, selectedDeckCards, "Player 1",
+                        selectedDeckCards, secondDeck, "Player 1",
                         if (mode == MatchMode.AI) "AI" else "Player 2"
                     )
                     waitingForTurnReveal = false

@@ -62,23 +62,56 @@ jobs:
             echo "DM_RELEASE_STORE_FILE=$RUNNER_TEMP/duel-masters-release.keystore" >> "$GITHUB_ENV"
           fi
 
+      - name: Require production signing for release tags
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          test -n "${DM_RELEASE_KEYSTORE_BASE64:-}" || { echo "Missing DM_RELEASE_KEYSTORE_BASE64"; exit 1; }
+          test -n "${DM_RELEASE_STORE_PASSWORD:-}" || { echo "Missing DM_RELEASE_STORE_PASSWORD"; exit 1; }
+          test -n "${DM_RELEASE_KEY_ALIAS:-}" || { echo "Missing DM_RELEASE_KEY_ALIAS"; exit 1; }
+          test -n "${DM_RELEASE_KEY_PASSWORD:-}" || { echo "Missing DM_RELEASE_KEY_PASSWORD"; exit 1; }
+
       - name: Build debug and optimized release APKs; run JVM tests
         run: gradle --no-daemon :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest
 
-      - name: Run on-device catalogue import test
+      - name: Run on-device catalogue import test and export rules audit
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
           arch: x86_64
           disable-animations: true
-          script: gradle --no-daemon :app:connectedDebugAndroidTest
+          script: |
+            set -euo pipefail
+            gradle --no-daemon :app:connectedDebugAndroidTest
+            mkdir -p app/build/reports/card-audit
+            adb exec-out run-as com.duelmasters.game.debug cat files/card-rules-support-report.csv > app/build/reports/card-audit/card-rules-support-report.csv
+            adb exec-out run-as com.duelmasters.game.debug cat files/card-rules-support-summary.txt > app/build/reports/card-audit/card-rules-support-summary.txt
+            test -s app/build/reports/card-audit/card-rules-support-report.csv
+            test -s app/build/reports/card-audit/card-rules-support-summary.txt
+
+      - name: Verify signed release APK
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          APK="$(find app/build/outputs/apk/release -maxdepth 1 -name 'app-release.apk' -print -quit)"
+          test -n "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK"
 
       - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
-          name: duel-masters-android-release-${{ github.sha }}
+          name: duel-masters-android-validation-build-${{ github.sha }}
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload rules coverage audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duel-masters-rules-coverage-${{ github.sha }}
+          path: app/build/reports/card-audit/
+          if-no-files-found: ignore
           retention-days: 30
 
       - name: Upload unit and instrumentation test results
@@ -89,5 +122,6 @@ jobs:
           path: |
             app/build/test-results/testDebugUnitTest/
             app/build/outputs/androidTest-results/connected/
+            app/build/reports/card-audit/
           if-no-files-found: ignore
           retention-days: 14

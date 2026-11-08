@@ -430,6 +430,39 @@ class DuelMastersEngineTest {
         assertEquals(2000, CardTextParser.powerAttackBonus("Power Attacker +2000"))
     }
 
+    @Test fun parserRejectsCardsWithMissingOrVariableCoreStats() {
+        assertEquals(
+            "METADATA_ONLY",
+            CardTextParser.supportStatus(
+                "CREATURE", "", cost = null, powerText = "3000", requireCoreStats = true
+            )
+        )
+        assertEquals(
+            "METADATA_ONLY",
+            CardTextParser.supportStatus(
+                "CREATURE", "", cost = 3, powerText = "3000+", requireCoreStats = true
+            )
+        )
+        assertEquals(
+            "METADATA_ONLY",
+            CardTextParser.supportStatus(
+                "SPELL", "", cost = null, requireCoreStats = true
+            )
+        )
+        assertEquals(
+            "SUPPORTED",
+            CardTextParser.supportStatus(
+                "CREATURE", "", cost = 3, powerText = "4000", requireCoreStats = true
+            )
+        )
+        assertEquals(
+            "SUPPORTED",
+            CardTextParser.supportStatus(
+                "SPELL", "", cost = 2, requireCoreStats = true
+            )
+        )
+    }
+
     @Test fun shieldTriggerResolutionContinuesRemainingDoubleBreakerShieldSteps() {
         val attacker = CardInstance(
             "attacker",

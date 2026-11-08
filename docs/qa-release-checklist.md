@@ -9,6 +9,7 @@
 - [ ] Bundled SQLite source decodes and imports into Room on a clean install.
 - [ ] Imported card and printing counts are non-zero and match the expected catalogue snapshot.
 - [ ] Playable and catalogue-only classifications are checked against a reviewed rules-text fixture.
+- [ ] The CI rules-coverage CSV is reviewed; variable/missing stats and unsupported wording are triaged.
 - [ ] Manifest check confirms no INTERNET permission and backup remains disabled.
 - [ ] Release artifact is uploaded and its checksum is retained.
 
@@ -27,6 +28,8 @@
 - [ ] Temporary power modifiers and expiry timing.
 - [ ] AI vs AI full-match simulation for all difficulty levels.
 - [ ] Local pass-and-play private hand transitions and decision handoffs.
+- [ ] Local player 1 and player 2 can choose separate saved decks.
+- [ ] A saved deck with missing/corrupt card references is blocked rather than silently shortened.
 
 ## Device and UX verification
 
@@ -36,6 +39,7 @@
 - [ ] Create, edit, save, select and delete decks.
 - [ ] Complete solo matches at all AI difficulty levels.
 - [ ] Complete local pass-and-play matches without private-hand leakage.
+- [ ] Complete local matches with two different saved decks and verify the displayed deck identities.
 - [ ] Verify portrait/landscape and small-screen layouts if supported.
 - [ ] Verify accessibility labels, touch target sizes, text scaling and contrast.
 - [ ] Verify process recreation/backgrounding does not corrupt local data.

@@ -29,7 +29,7 @@ See the [player guide](docs/user-guide.md) and [gameplay flow](docs/gameplay-flo
 
 The current engine includes turn progression, draw/deck-out, shields, mana charging and payment, summoning sickness, Speed Attacker, evolution onto a matching race, evolution stacks, attacks, Blocker selection, Slayer combat, Power Attacker, Double/Triple Breaker, Unblockable, supported Shield Triggers and a limited set of spell effects.
 
-The exact effect patterns and known exclusions are documented in [rules-engine status](docs/rules-engine-status.md) and [card rules support](docs/card-rules-support.md). The classifier is intentionally conservative: a card with even one unrecognized rules clause is Catalogue only.
+The exact effect patterns and known exclusions are documented in [rules-engine status](docs/rules-engine-status.md) and [card rules support](docs/card-rules-support.md). CI exports the full catalogue-only card list as a versioned rules-coverage artifact. The classifier is intentionally conservative: a card with even one unrecognized rules clause is Catalogue only.
 
 ## Build and test
 

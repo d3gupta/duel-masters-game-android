@@ -65,6 +65,10 @@ Some rules require a player to choose before the game can continue. The engine s
 
 The AI responds through the same action types as a human player. The engine validates AI responses exactly as it validates human actions.
 
+## Local pass-and-play deck selection
+
+Player 1 and Player 2 select their saved decks independently. If only one saved deck exists, it is used for both sides; with multiple saved decks, Player 2 can choose a different list entry. Before match creation, both decks must pass the same minimum-40/no-maximum/four-copies validator and every stored card reference must still resolve to a playable card. Missing or corrupt references disable Start instead of silently shortening a deck.
+
 ## Local pass-and-play privacy
 
 A local match has one shared device, not two accounts. The UI must explicitly hand off the device and hide the previous player's hand before revealing the next player's private hand. Public zones remain visible. A defender-choice handoff returns control to the attacker only after the decision is resolved; local mode then requires the appropriate private-hand transition again.

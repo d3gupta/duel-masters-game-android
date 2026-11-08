@@ -100,9 +100,16 @@ object CardTextParser {
     fun supportStatus(
         cardType: String,
         rulesText: String,
-        catalogMechanics: Set<String> = emptySet()
+        catalogMechanics: Set<String> = emptySet(),
+        cost: Int? = null,
+        powerText: String? = null,
+        requireCoreStats: Boolean = false
     ): String {
         if (cardType !in setOf("CREATURE", "SPELL", "EVOLUTION_CREATURE")) return "METADATA_ONLY"
+        if (requireCoreStats && (cost == null || cost < 0)) return "METADATA_ONLY"
+        if (requireCoreStats && cardType != "SPELL" &&
+            powerText?.replace(",", "")?.trim()?.toIntOrNull() == null
+        ) return "METADATA_ONLY"
         if (cardType == "EVOLUTION_CREATURE" && evolutionRace(rulesText) == null) return "METADATA_ONLY"
         val text = normalize(rulesText)
         if (text.isBlank()) return "SUPPORTED"

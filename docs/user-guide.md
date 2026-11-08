@@ -37,7 +37,7 @@ The AI is rules-aware but is not a perfect strategic opponent.
 
 ## 5. Start a local two-player duel
 
-Choose local/pass-and-play mode and select a deck for each player. When the device changes hands, follow the private-hand handoff screen. The next player should only reveal their hand when they have the device. Keep the device positioned so the other player cannot see the private hand.
+Choose local/pass-and-play mode. Select Player 1's saved deck, then select Player 2's saved deck from the separate list. When only one saved deck exists, both players use it unless you create another deck. The app will not start if a saved deck contains missing or no-longer-playable cards; edit and resave that deck first. When the device changes hands, follow the private-hand handoff screen. The next player should only reveal their hand when they have the device. Keep the device positioned so the other player cannot see the private hand.
 
 ## 6. Play a turn
 
