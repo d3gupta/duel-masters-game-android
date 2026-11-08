@@ -12,14 +12,14 @@
       "website": "https://db.duelmasters.us/",
       "reportedCoverage": "2600+ English card entries through DM-35",
       "redistributionLicenseStatus": "USER_CONFIRMED_OFFLINE_BY_PROJECT_OWNER",
-      "usage": "Reference and candidate import source only; do not redistribute database or artwork until permission is confirmed."
+      "usage": "Bundled SQLite source used by the offline importer; redistribution permission confirmed by project owner outside this repository."
     },
     {
       "name": "Latepate64/duel-masters-json",
       "repository": "https://github.com/Latepate64/duel-masters-json",
       "reportedCoverage": "DM-01 through DM-12 and English promotional cards",
       "redistributionLicenseStatus": "USER_CONFIRMED_OFFLINE_BY_PROJECT_OWNER",
-      "usage": "Schema and historical metadata reference; insufficient alone for expanded DM-35 coverage."
+      "usage": "Reference/schema source only; not the bundled DM-35 catalogue."
     }
   ],
   "importedSnapshot": {
