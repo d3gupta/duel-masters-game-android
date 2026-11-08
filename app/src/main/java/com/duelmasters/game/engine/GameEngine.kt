@@ -96,12 +96,12 @@ object GameEngine {
         return GameResult.Success(replace(state, paid.copy(hand = paid.hand - card, battle = paid.battle + creature)).logged("${card.card.name} summoned."))
     }
 
-    fun castSpell(state: GameState, handInstanceId: String): GameResult {
+    fun castSpell(state: GameState, handInstanceId: String, targetCreatureId: String? = null): GameResult {
         val p = state.player(state.activePlayer)
         val card = p.hand.firstOrNull { it.instanceId == handInstanceId } ?: return GameResult.Rejected("Card is not in your hand.")
         if (card.card.kind != CardKind.SPELL) return GameResult.Rejected("That card is not a spell.")
         val paid = payMana(p, card.card.cost) ?: return GameResult.Rejected("Not enough untapped mana.")
-        val resolved = resolveEffects(state, paid, card.card.effects, null)
+        val resolved = resolveEffects(state, paid, card.card.effects, targetCreatureId)
         val finalPlayer = resolved.first.copy(graveyard = resolved.first.graveyard + card)
         return GameResult.Success(replace(resolved.second, finalPlayer).logged("${card.card.name} cast."))
     }
@@ -155,9 +155,6 @@ object GameEngine {
                 } else defender = defender.copy(hand = defender.hand + shield)
             }
             next = replace(next, defender).logged("${attacker.card.name} broke $breaks shield(s).")
-            if (defender.shields.isEmpty() && defender.hand.isEmpty() && defender.deck.isEmpty()) {
-                next = next.copy(winner = p.id, phase = TurnPhase.FINISHED)
-            }
             return GameResult.Success(next)
         }
         val tapped = p.battle.map { if (it.instanceId == attackerId) it.copy(tapped = true) else it }
