@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -42,7 +43,7 @@ interface CardDao {
     @Query("SELECT * FROM card_catalog_metadata WHERE id = 1")
     suspend fun getMetadata(): CardCatalogMetadataEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertCards(cards: List<CardEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
