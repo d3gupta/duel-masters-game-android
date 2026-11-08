@@ -243,4 +243,17 @@ class DuelMastersEngineTest {
         }
     }
 
+    @Test fun blockerPreventsDirectAttackVictoryWhenShieldsAreGone() {
+        val attacker = CardInstance("attacker", GameCard("a", "Attacker", CardKind.CREATURE, 1, 1000), summoningSick = false)
+        val blocker = CardInstance("blocker", GameCard("b", "Blocker", CardKind.CREATURE, 1, 3000, keywords = setOf("BLOCKER")))
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
+            PlayerState(1, "P2", emptyList(), battle = listOf(blocker))
+        ))
+        val result = DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success
+        assertEquals(null, result.state.winner)
+        assertTrue(result.state.players[0].battle.isEmpty())
+        assertEquals(1, result.state.players[1].battle.size)
+    }
+
 }
