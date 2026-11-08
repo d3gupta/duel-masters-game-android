@@ -5,6 +5,17 @@ plugins {
     id("com.google.devtools.ksp") version "2.0.21-1.0.28"
 }
 
+val releaseStoreFile = System.getenv("DM_RELEASE_STORE_FILE")
+val releaseStorePassword = System.getenv("DM_RELEASE_STORE_PASSWORD")
+val releaseKeyAlias = System.getenv("DM_RELEASE_KEY_ALIAS")
+val releaseKeyPassword = System.getenv("DM_RELEASE_KEY_PASSWORD")
+val releaseSigningValues = listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword)
+val hasAnyReleaseSigningValue = releaseSigningValues.any { !it.isNullOrBlank() }
+val hasCompleteReleaseSigning = releaseSigningValues.all { !it.isNullOrBlank() }
+if (hasAnyReleaseSigningValue && !hasCompleteReleaseSigning) {
+    throw GradleException("Release signing is partially configured. Provide all DM_RELEASE_* signing values or none.")
+}
+
 android {
     namespace = "com.duelmasters.game"
     compileSdk = 35
@@ -14,7 +25,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -22,9 +33,28 @@ android {
         }
     }
 
+    signingConfigs {
+        if (hasCompleteReleaseSigning) {
+            create("release") {
+                storeFile = file(requireNotNull(releaseStoreFile))
+                storePassword = requireNotNull(releaseStorePassword)
+                keyAlias = requireNotNull(releaseKeyAlias)
+                keyPassword = requireNotNull(releaseKeyPassword)
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            if (hasCompleteReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -72,6 +102,7 @@ dependencies {
     implementation("androidx.room:room-ktx:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")
 
+    // Retained libraries are not used by offline gameplay and no INTERNET permission is declared.
     implementation("io.ktor:ktor-client-core:3.0.3")
     implementation("io.ktor:ktor-client-okhttp:3.0.3")
     implementation("io.ktor:ktor-client-websockets:3.0.3")
@@ -80,6 +111,8 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:core:1.6.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
