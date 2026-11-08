@@ -1,5 +1,7 @@
 package com.duelmasters.game.ui
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
@@ -28,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.duelmasters.game.data.local.CardEntity
 import com.duelmasters.game.data.local.DuelMastersDatabase
@@ -38,6 +41,7 @@ import com.duelmasters.game.engine.CardKind
 import com.duelmasters.game.engine.DuelMastersEngine
 import com.duelmasters.game.engine.GameAction
 import com.duelmasters.game.engine.GameCard
+import com.duelmasters.game.engine.CardInstance
 import com.duelmasters.game.engine.GameState
 import com.duelmasters.game.engine.DeckValidator
 import org.json.JSONArray
@@ -156,11 +160,11 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
             } else {
                 ZoneSummary("Opponent: ${rival.name}", rival.deck.size, rival.shields.size, rival.mana.size, rival.battle.size)
                 Text("Opponent battle zone", style = MaterialTheme.typography.labelLarge)
-                CardRow(rival.battle.map { it.card.name + if (it.tapped) " (tapped)" else "" })
+                BattlefieldCardRow(rival.battle)
                 Spacer(Modifier.height(4.dp))
                 ZoneSummary("Your zones: ${me.name}", me.deck.size, me.shields.size, me.mana.size, me.battle.size)
                 Text("Your battle zone", style = MaterialTheme.typography.labelLarge)
-                CardRow(me.battle.map { it.card.name + if (it.tapped) " (tapped)" else "" })
+                BattlefieldCardRow(me.battle)
                 Text("Your hand (${me.hand.size})", style = MaterialTheme.typography.titleMedium)
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     me.hand.forEach { instance ->
@@ -239,11 +243,45 @@ private fun ZoneSummary(title: String, deck: Int, shields: Int, mana: Int, battl
 }
 
 @Composable
-private fun CardRow(names: List<String>) {
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        if (names.isEmpty()) Text("Empty", style = MaterialTheme.typography.bodySmall)
-        names.forEach { name ->
-            Text(name, Modifier.background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(8.dp)).padding(8.dp), style = MaterialTheme.typography.labelSmall)
+private fun BattlefieldCardRow(cards: List<CardInstance>) {
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (cards.isEmpty()) Text("Empty", style = MaterialTheme.typography.bodySmall)
+        cards.forEach { instance ->
+            val rotation by animateFloatAsState(
+                targetValue = if (instance.tapped) 90f else 0f,
+                label = "card-tap-rotation"
+            )
+            Card(
+                modifier = Modifier
+                    .width(124.dp)
+                    .height(156.dp)
+                    .animateContentSize()
+                    .graphicsLayer { rotationZ = rotation },
+                colors = CardDefaults.cardColors(
+                    containerColor = if (instance.tapped) MaterialTheme.colorScheme.surfaceVariant
+                    else MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(
+                    Modifier.fillMaxSize().padding(9.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(instance.card.name, style = MaterialTheme.typography.titleSmall)
+                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text("Cost ${instance.card.cost}", style = MaterialTheme.typography.labelSmall)
+                        if (instance.card.kind == CardKind.CREATURE) {
+                            Text("Power ${instance.currentPower}", style = MaterialTheme.typography.labelMedium)
+                        } else Text("SPELL", style = MaterialTheme.typography.labelMedium)
+                        if (instance.card.keywords.isNotEmpty()) {
+                            Text(instance.card.keywords.joinToString(" • ") { it.replace('_', ' ') }, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                    Text(if (instance.tapped) "TAPPED" else "READY", style = MaterialTheme.typography.labelSmall)
+                }
+            }
         }
     }
 }
