@@ -331,8 +331,10 @@ class DuelMastersEngineTest {
         val declared = (DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success).state
         val resolved = (DuelMastersEngine.apply(declared, GameAction.ChooseBlocker("second")) as ActionResult.Success).state
         assertEquals(1, resolved.players[1].shields.size)
-        assertTrue(resolved.players[1].battle.none { it.instanceId == "second" })
-        assertTrue(resolved.players[1].battle.any { it.instanceId == "first" })
+        // The selected 5,000-power blocker intercepts and survives the 3,000-power attacker.
+        assertTrue(resolved.players[1].battle.any { it.instanceId == "second" && it.tapped })
+        assertTrue(resolved.players[1].battle.any { it.instanceId == "first" && !it.tapped })
+        assertTrue(resolved.players[0].battle.none { it.instanceId == "attacker" })
         assertTrue(resolved.pendingChoice == null)
     }
 
