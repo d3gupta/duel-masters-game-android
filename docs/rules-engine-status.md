@@ -22,7 +22,8 @@ players and AI; actions are validated by the same immutable state machine.
 - Slayer combat, Power Attacker bonuses, Double Breaker and Triple Breaker.
 - Defender can use a Shield Trigger for free or add that shield to hand. A trigger
   spell's supported effects resolve before the rest of a multi-shield attack.
-- Targeted destroy/return/tap effects pause for target selection. Supported weakest
+- Opponent-specific targeted destroy/return/tap effects pause for target selection.
+  Ambiguous all-player targets remain browse-only. Supported weakest
   creature effects, draw, add-top-card-to-mana/hand/shield, untap, temporary power
   boosts, and power-threshold mass destruction.
 - Temporary power modifiers expire at the end of the affected owner's next turn,
@@ -57,11 +58,12 @@ rules interpreter.
   civilization-specific costs, race-specific effects beyond parsed evolution,
   attack restrictions, continuous abilities, and complicated conditional clauses
   are not implemented. The corresponding cards remain browse-only when detected.
-- Temporary power boosts apply to creatures already on the battlefield when the
-  effect resolves; later creatures entering that turn do not automatically inherit
-  the boost.
-- Evolution stack handling covers normal battle removal and return-to-hand effects;
-  uncommon effects that move only part of an evolution stack are not modeled.
+- Temporary power boosts apply only to creatures already on the battlefield when
+  the effect resolves; later creatures entering that turn do not automatically inherit
+  the boost. Optional draw quantities are not treated as fixed draws.
+- Destroying an evolution creature moves its full stack to the graveyard. Returning an
+  evolution creature moves only the top card to its owner's hand and sends its sources
+  to the graveyard.
 - Format-specific banned/restricted lists and separate rule-set profiles are absent.
 - The bundled source does not include card artwork. The UI uses information panels
   rather than official card images.

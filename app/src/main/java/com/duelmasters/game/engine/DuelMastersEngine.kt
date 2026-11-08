@@ -434,10 +434,7 @@ object DuelMastersEngine {
                     graveyard = targetPlayer.graveyard + flattenStack(target)
                 ))
             EffectKind.RETURN_TARGET_OPPONENT ->
-                state.replace(targetPlayer.copy(
-                    battle = targetPlayer.battle - target,
-                    hand = targetPlayer.hand + flattenStack(target)
-                ))
+                state.replace(returnEvolutionStackToHand(targetPlayer, target))
             EffectKind.TAP_TARGET_OPPONENT ->
                 state.replace(targetPlayer.copy(
                     battle = targetPlayer.battle.map { if (it.instanceId == targetInstanceId) it.copy(tapped = true) else it }
@@ -490,10 +487,7 @@ object DuelMastersEngine {
             EffectKind.RETURN_WEAKEST_OPPONENT -> repeat(effect.amount.coerceAtLeast(1)) {
                 val currentOpponent = state.players[opponentId]
                 val target = currentOpponent.battle.minByOrNull { it.currentPower }
-                if (target != null) state = state.replace(currentOpponent.copy(
-                    battle = currentOpponent.battle - target,
-                    hand = currentOpponent.hand + flattenStack(target)
-                ))
+                if (target != null) state = state.replace(returnEvolutionStackToHand(currentOpponent, target))
             }
             EffectKind.ADD_TOP_CARD_TO_MANA -> repeat(effect.amount.coerceAtLeast(1)) {
                 val current = state.players[ownerId]
@@ -574,6 +568,14 @@ object DuelMastersEngine {
             .replace(attackerPlayer.copy(battle = nextAttackerBattle, graveyard = nextAttackerGraveyard))
             .replace(defenderPlayer.copy(battle = nextDefenderBattle, graveyard = nextDefenderGraveyard))
     }
+
+    /** Bounce only the evolution top card; sources beneath it go to the graveyard. */
+    private fun returnEvolutionStackToHand(player: PlayerState, top: CardInstance): PlayerState =
+        player.copy(
+            battle = player.battle - top,
+            hand = player.hand + top.copy(evolvedCards = emptyList()),
+            graveyard = player.graveyard + top.evolvedCards
+        )
 
     private fun flattenStack(top: CardInstance): List<CardInstance> =
         top.evolvedCards + top.copy(evolvedCards = emptyList())

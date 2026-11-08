@@ -35,14 +35,14 @@ object CardTextParser {
         when {
             Regex("destroy (?:the )?(?:opponent's|your opponent's) weakest creature").containsMatchIn(text) ->
                 result += CardEffect(EffectKind.DESTROY_WEAKEST_OPPONENT)
-            Regex("destroy (?:target|one of your opponent's|an opponent's) creature").containsMatchIn(text) ->
+            Regex("destroy (?:one of your opponent's|an opponent's) creature").containsMatchIn(text) ->
                 result += CardEffect(EffectKind.DESTROY_TARGET_OPPONENT)
             Regex("return (?:the )?(?:opponent's|your opponent's) weakest creature to (?:its|their) hand").containsMatchIn(text) ->
                 result += CardEffect(EffectKind.RETURN_WEAKEST_OPPONENT)
-            Regex("return (?:target|one of your opponent's|an opponent's) creature to (?:its|their) hand").containsMatchIn(text) ||
-                Regex("return target creature.*hand").containsMatchIn(text) ->
+            Regex("return (?:one of your opponent's|an opponent's) creature to (?:its|their) hand").containsMatchIn(text) ||
+                .containsMatchIn(text) ->
                 result += CardEffect(EffectKind.RETURN_TARGET_OPPONENT)
-            Regex("tap (?:target|one of your opponent's|an opponent's) creature").containsMatchIn(text) ->
+            Regex("tap (?:one of your opponent's|an opponent's) creature").containsMatchIn(text) ->
                 result += CardEffect(EffectKind.TAP_TARGET_OPPONENT)
         }
 
@@ -106,11 +106,11 @@ object CardTextParser {
             Regex("draw (?:up to )?\\d+ cards?"),
             Regex("draw (?:a|one) card"),
             Regex("destroy (?:the )?(?:opponent's|your opponent's) weakest creature"),
-            Regex("destroy (?:target|one of your opponent's|an opponent's) creature"),
+            Regex("destroy (?:one of your opponent's|an opponent's) creature"),
             Regex("return (?:the )?(?:opponent's|your opponent's) weakest creature to (?:its|their) hand"),
-            Regex("return (?:target|one of your opponent's|an opponent's) creature to (?:its|their) hand"),
-            Regex("return target creature.*hand"),
-            Regex("tap (?:target|one of your opponent's|an opponent's) creature"),
+            Regex("return (?:one of your opponent's|an opponent's) creature to (?:its|their) hand"),
+            ,
+            Regex("tap (?:one of your opponent's|an opponent's) creature"),
             Regex("put the top card of your deck into your mana(?: zone)?"),
             Regex("add the top card of your deck to your mana"),
             Regex("put the top card of your deck into your hand"),

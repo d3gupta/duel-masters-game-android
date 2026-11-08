@@ -409,7 +409,9 @@ class DuelMastersEngineTest {
 
 
     @Test fun parserOnlyMarksFullyRecognizedRulesTextAsPlayable() {
-        assertEquals("SUPPORTED", CardTextParser.supportStatus("SPELL", "Destroy target creature."))
+        assertEquals("SUPPORTED", CardTextParser.supportStatus("SPELL", "Destroy one of your opponent's creatures."))
+        assertEquals("METADATA_ONLY", CardTextParser.supportStatus("SPELL", "Destroy target creature."))
+        assertEquals("METADATA_ONLY", CardTextParser.supportStatus("SPELL", "Draw up to 2 cards."))
         assertEquals("SUPPORTED", CardTextParser.supportStatus("CREATURE", "This creature has Blocker."))
         assertEquals("METADATA_ONLY", CardTextParser.supportStatus(
             "SPELL", "Search your deck for a creature and put it into your hand."
@@ -470,5 +472,22 @@ class DuelMastersEngineTest {
         assertTrue(resolved.players[1].battle.first { it.instanceId == "tapped" }.tapped)
     }
 
+
+    @Test fun returningAnEvolutionCreatureSendsOnlyTheTopCardToHand() {
+        val base = CardInstance("base", GameCard("base", "Base", CardKind.CREATURE, 1, 1000))
+        val evolution = CardInstance("evo", GameCard("evo", "Evolution", CardKind.CREATURE, 3, 5000),
+            summoningSick = false, evolvedCards = listOf(base))
+        val spell = CardInstance("spell", GameCard("spell", "Bounce", CardKind.SPELL, 1,
+            effects = listOf(CardEffect(EffectKind.RETURN_WEAKEST_OPPONENT))))
+        val mana = CardInstance("mana", GameCard("mana-card", "Mana", CardKind.CREATURE, 1))
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), hand = listOf(spell), mana = listOf(mana)),
+            PlayerState(1, "P2", emptyList(), battle = listOf(evolution))
+        ))
+        val result = (DuelMastersEngine.apply(state, GameAction.CastSpell("spell")) as ActionResult.Success).state
+        assertEquals(listOf("evo"), result.players[1].hand.map { it.instanceId })
+        assertEquals(listOf("base"), result.players[1].graveyard.map { it.instanceId })
+        assertTrue(result.players[1].battle.isEmpty())
+    }
 
 }
