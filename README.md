@@ -1,71 +1,73 @@
-# Duel Masters Game (Android)
+# Duel Masters — Android
 
-An offline-first Duel Masters card game for Android. The Android client is designed for airplane-mode use, does not request internet access, and disables Android app-data backup so saved decks remain local.
+An offline-first, single-device Duel Masters card game for Android, built with Kotlin, Jetpack Compose, Material 3 and Room.
 
-## Planned game modes
+> **Implementation scope:** the app contains an expanded English card catalogue through DM-35 and promotional entries, but it does **not** implement every card effect. Only cards marked **Playable** by the conservative rules-text classifier can enter a deck. Other cards remain searchable as **Catalogue only**.
 
-- Single-player against AI (Easy / Normal / Hard).
-- Local two-player pass-and-play on one device, with private-hand transitions.
+## What the app does
 
-## Current implementation
+- **Solo duel:** play against Easy, Normal or Hard AI.
+- **Local duel:** two people play pass-and-play on one Android device. Private-hand handoffs conceal the previous player's hand.
+- **Card catalogue:** browse and search the bundled English catalogue offline, including set/printing metadata.
+- **Deck builder:** create, edit, save and delete local decks.
+- **Deck rules:** at least 40 cards, no maximum size, no more than four copies of a card name (counted across printings).
+- **Rules engine:** a deterministic Kotlin state machine shared by the UI and AI. Unsupported card text is not guessed at runtime.
+- **Privacy:** Android client requests no internet permission and disables Android app-data backup. The Android game does not depend on the optional Ktor backend.
 
-- Kotlin, Jetpack Compose and Material 3 Android app.
-- Room database with a versioned migration that preserves saved decks.
-- Bundled English Duel Masters SQLite card source, imported locally into Room.
-- Searchable card browser with name and rules-text search.
-- Offline AI and local pass-and-play battlefield with private-hand transitions, blocker choices, Shield Trigger choices, target selection and evolution plays.
-- Offline deck builder with minimum-40/no-maximum validation, four-copy-per-name enforcement, and Room saving; saved decks can be selected for matches.
-- Basic deck validation: minimum 40 cards, no maximum size, and at most four copies per card name.
-- Platform-independent rules-engine slice: game setup, zones, mana charging, summoning, summoning sickness, blockers, slayer combat, breaker abilities and supported Shield Trigger effects.
-- Easy / Normal / Hard AI policies, including defender and effect-target decisions, all enforced by the same rules engine.
-- Card and printing records retain set, collector number, rarity and official/community/promotional provenance.
-- Card metadata is not treated as rules support: only definitions classified SUPPORTED are deck-eligible. Other catalogue entries remain searchable as browse-only cards.
+## Player journey
 
-The bundled source describes 2,600+ English card entries through DM-35 and English promotional entries. The importer groups repeated printings into card definitions. Artwork and video assets are not bundled.
+1. Launch the app. On first launch, the bundled SQLite catalogue is imported into the local Room database.
+2. Browse the card catalogue and inspect each card's Playable / Catalogue only status.
+3. Open Deck Builder, create a deck, add at least 40 playable cards and save it.
+4. Start a Solo duel and select an AI difficulty, or start a Local duel for pass-and-play.
+5. Play turns using the battlefield controls. The game pauses when a defender must choose a Blocker, decide whether to use a Shield Trigger, or select an effect target.
+6. The match ends when a player loses by deck-out or an opponent attacks directly after all shields are gone.
 
-## Release build
+See the [player guide](docs/user-guide.md) and [gameplay flow](docs/gameplay-flow.md).
 
-The optimized Android release variant is built with R8 and resource shrinking. CI runs JVM rule tests, an Android emulator catalogue-import test, and packages the release APK. See [release and signing instructions](docs/release.md).
+## Current supported rules slice
 
-A production-signed APK requires a release keystore. When no signing values are configured, CI deliberately emits an unsigned release APK rather than signing with a debug key. This is an offline playable rules slice, not a claim that every card through DM-35 has complete effect support.
+The current engine includes turn progression, draw/deck-out, shields, mana charging and payment, summoning sickness, Speed Attacker, evolution onto a matching race, evolution stacks, attacks, Blocker selection, Slayer combat, Power Attacker, Double/Triple Breaker, Unblockable, supported Shield Triggers and a limited set of spell effects.
 
-## Stack
+The exact effect patterns and known exclusions are documented in [rules-engine status](docs/rules-engine-status.md) and [card rules support](docs/card-rules-support.md). The classifier is intentionally conservative: a card with even one unrecognized rules clause is Catalogue only.
 
-| Layer | Technology |
-|-------|------------|
-| **Android UI** | Kotlin, Jetpack Compose, Material 3 |
-| **Local storage** | Room / SQLite |
-| **Card source** | Bundled SQLite asset, imported offline |
-| **Backend** | Ktor scaffold retained for possible future use; not required by the Android app |
+## Build and test
+
+- Android Gradle Plugin 8.9.1; Gradle 8.11.1
+- JDK 17
+- compile / target SDK 36
+- min SDK 26 (Android 8.0)
+- Application ID: `com.duelmasters.game`
+- Version: `1.0.0`
+
+Open the repository in Android Studio, sync Gradle and run the `app` configuration. First-launch catalogue import is local and does not require a network connection.
+
+For CI, release signing and the release checklist, see [release documentation](docs/release.md). CI builds debug and optimized release variants, runs JVM tests and runs an API 36 emulator catalogue-import test. A production release must be signed with the long-lived owner-controlled keystore; CI must never use a debug key.
 
 ## Project structure
 
 ```text
-duel-masters-game-android/
-├── app/          # Offline Android client (Compose + Room)
-├── backend/      # Optional legacy Ktor scaffold; not used by offline gameplay
-└── docs/         # Architecture and card catalogue notes
+app/       Android application: UI, rules engine, Room persistence and bundled card data
+backend/  Retained Ktor scaffold; not used by the offline Android client
+docs/     Architecture, player guide, rules coverage, data and release documentation
 ```
 
-## Getting started
+## Documentation index
 
-1. Open this repository in Android Studio.
-2. Sync Gradle.
-3. Run the `app` configuration on an emulator or Android device.
-4. On first launch, the bundled card database is decoded and imported into Room. No network connection is needed.
+| Document | Purpose |
+|---|---|
+| [Player guide](docs/user-guide.md) | First launch, catalogue, decks, solo and local matches |
+| [Gameplay flow](docs/gameplay-flow.md) | Match setup, turn lifecycle and decision handoffs |
+| [Architecture](docs/architecture.md) | App layers, boundaries and data flow |
+| [Rules-engine status](docs/rules-engine-status.md) | Implemented mechanics and known limitations |
+| [Card rules support](docs/card-rules-support.md) | Parser coverage, unsupported patterns and SQL inventory query |
+| [Card database](docs/card-database.md) | Catalogue structure and provenance |
+| [Release](docs/release.md) | Build, signing, CI and pre-release checklist |
 
-## Development roadmap
+## Important release caveat
 
-- [x] Bundle English card data through DM-35 and promotional entries.
-- [x] Add Room card, printing, collection and catalogue-metadata tables.
-- [x] Add searchable offline card browser.
-- [x] Add the initial rules-engine slice and unit tests; full classic rules coverage remains in progress.
-- [x] Add deck editing and deletion. Collection-aware building and advanced format restrictions remain future work.
-- [x] Add Easy / Normal / Hard heuristic AI difficulty levels.
-- [x] Add local two-player pass-and-play with private-hand transitions and turn/decision handoffs.
-- [x] Add interactive blocker, Shield Trigger and target choices; implement the supported evolution stack and mark unimplemented card text as browse-only.
-- [ ] Continue expanding per-card rules coverage and test full match sequences; the complete DM-35 rules set is not yet implemented.
+This is a playable rules subset backed by a broad catalogue, not a complete DM-35 simulator. Before distributing it as a faithful rules implementation, the remaining card effects, timing interactions, edge cases, physical-device QA and final signed release must be completed and verified.
 
 ## License
 
-MIT
+MIT for this repository's original code. Refer to the card-data source and individual asset provenance before redistributing bundled catalogue data or adding artwork.
