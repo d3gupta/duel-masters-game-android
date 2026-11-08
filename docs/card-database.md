@@ -1,8 +1,6 @@
 # Expanded English Duel Masters card catalogue
 
-This package prepares the repository for an offline, searchable English card catalogue.
-It deliberately does **not** bundle third-party card text, images, or a scraped database:
-the redistribution terms for the candidate community datasets have not yet been verified.
+This implementation bundles an authorized offline English card-data source and imports it into Room. It does not bundle card artwork or video media; those assets are separate and are not required for catalogue browsing.
 
 ## Scope
 
@@ -31,8 +29,8 @@ Card artwork/image permissions are separate from card-data permissions. Only pac
 
 ```text
 app/src/main/assets/cards/
-  card-catalog.json
-  card-catalog.schema.json
+  duelmasters-source.db.base64
+
 app/src/main/java/com/duelmasters/game/data/
   catalog/
     CardCatalogModels.kt
@@ -62,20 +60,20 @@ The source repository describes 2,600+ English card entries through DM-35 and 18
 
 ## Import pipeline
 
-1. Obtain a source export and explicit permission/license terms for redistribution and modification.
-2. Keep an untouched copy of the source export outside the app source tree for auditability.
-3. Write a deterministic converter from source schema to `card-catalog.json`.
-4. Normalize civilization/race/type values without discarding the original source values.
-5. Validate every record against `card-catalog.schema.json`.
-6. Validate uniqueness of `cardId` and `(setCode, collectorNumber)`.
-7. Generate a report: total definitions, total printings, counts by set, missing fields, duplicate keys and provenance gaps.
-8. Import the bundled JSON into Room on first launch using a versioned catalog importer.
-9. Make imports idempotent: re-running the same catalog version must not duplicate cards or printings.
+1. Use the authorized bundled SQLite source; permission arrangements have been confirmed by the project owner offline.
+2. Preserve the original source asset and its upstream provenance.
+3. Decode the base64 asset locally and open it read-only; never access the network.
+4. Read `Card` and `RulesText`, normalize civilization/race/type/rarity values, and preserve original rules text.
+5. Group identical card definitions while retaining each source row as a printing.
+6. Record official English, community English and promotional release classes separately.
+7. Import in a Room transaction using a versioned, idempotent importer.
+8. Use Room upserts that do not delete owned-card references when definitions are refreshed.
+9. Keep the JSON Schema as the normalized interchange/export contract.
 10. Add tests for parsing, migration, duplicate handling, multi-civilization cards, unusual power values and empty optional fields.
 
 ## Room integration guidance
 
-The current repository has a Room database at version 1 with `DeckEntity` only. Add catalog entities through a proper Room migration; do not use `fallbackToDestructiveMigration()` because it could erase player decks.
+The repository now has Room database version 2 with a migration from version 1. It preserves the existing `decks` table and adds catalogue, printing, collection and import-metadata tables. Do not use `fallbackToDestructiveMigration()` because it could erase player decks.
 
 Suggested tables:
 
@@ -83,7 +81,7 @@ Suggested tables:
 - `card_printings`: composite unique key `(setCode, collectorNumber)`, foreign key to `cards`, rarity, illustrator, release class, image asset key (nullable).
 - Keep user collection counts in a separate `owned_cards` table keyed by `cardId` (and optionally printing key), rather than mutating the catalogue.
 
-Room should expose paginated/filterable queries by name, set, civilization, cost, type, race, rarity and rules text. Avoid loading the entire catalogue into Compose state.
+Room exposes paginated search/filter queries by name, set, civilization, cost, type, race, rarity and rules text. Avoid loading the entire catalogue into Compose state.
 
 ## Acceptance criteria
 
