@@ -256,4 +256,17 @@ class DuelMastersEngineTest {
         assertEquals(1, result.state.players[1].battle.size)
     }
 
+    @Test fun powerBoostUsesAmountAsPowerNotAsRepeatCount() {
+        val spell = CardInstance("boost-spell", GameCard("boost", "Boost", CardKind.SPELL, 1,
+            effects = listOf(CardEffect(EffectKind.BOOST_FRIENDLY_CREATURES, 2000))))
+        val mana = CardInstance("mana", GameCard("mana-card", "Mana", CardKind.CREATURE, 1))
+        val creature = CardInstance("creature", GameCard("creature-card", "Creature", CardKind.CREATURE, 1, 1000))
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), hand = listOf(spell), mana = listOf(mana), battle = listOf(creature)),
+            PlayerState(1, "P2", emptyList())
+        ))
+        val result = DuelMastersEngine.apply(state, GameAction.CastSpell("boost-spell")) as ActionResult.Success
+        assertEquals(3000, result.state.players[0].battle.single().currentPower)
+    }
+
 }
