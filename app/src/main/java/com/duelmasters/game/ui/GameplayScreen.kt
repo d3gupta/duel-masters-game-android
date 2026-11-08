@@ -31,7 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.duelmasters.game.data.local.CardEntity
 import com.duelmasters.game.data.local.DuelMastersDatabase
-import com.duelmasters.game.engine.BasicDuelMastersAi
+import com.duelmasters.game.engine.DuelMastersAi
+import com.duelmasters.game.engine.AiDifficulty
 import com.duelmasters.game.engine.CardTextParser
 import com.duelmasters.game.engine.CardKind
 import com.duelmasters.game.engine.DuelMastersEngine
@@ -66,18 +67,19 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
     }
     val selectedDeckValidation = remember(selectedDeckCards) { DeckValidator.validate(selectedDeckCards) }
     var mode by remember { mutableStateOf(MatchMode.AI) }
+    var aiDifficulty by remember { mutableStateOf(AiDifficulty.NORMAL) }
     var game by remember { mutableStateOf<GameState?>(null) }
     var message by remember { mutableStateOf("Choose a mode and start a match.") }
     var showPrivateHand by remember { mutableStateOf(false) }
     var waitingForReveal by remember { mutableStateOf(false) }
 
-    LaunchedEffect(game?.activePlayer, game?.turn, mode) {
+    LaunchedEffect(game?.activePlayer, game?.turn, mode, aiDifficulty) {
         val initial = game
         if (initial != null && mode == MatchMode.AI && initial.activePlayer == 1 && initial.winner == null) {
             var current = initial
             repeat(30) {
                 if (current.activePlayer != 1 || current.winner != null) return@LaunchedEffect
-                val action = BasicDuelMastersAi.chooseAction(current)
+                val action = DuelMastersAi.chooseAction(current, aiDifficulty)
                 val result = DuelMastersEngine.apply(current, action)
                 if (result is ActionResult.Success) current = result.state
                 game = current
@@ -99,6 +101,15 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
                 else OutlinedButton(onClick = { mode = MatchMode.AI }) { Text("Vs AI") }
                 if (mode == MatchMode.LOCAL) Button(onClick = { mode = MatchMode.LOCAL }) { Text("Local 2 Player") }
                 else OutlinedButton(onClick = { mode = MatchMode.LOCAL }) { Text("Local 2 Player") }
+            }
+            if (mode == MatchMode.AI) {
+                Text("AI difficulty", style = MaterialTheme.typography.titleSmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    AiDifficulty.values().forEach { level ->
+                        if (aiDifficulty == level) Button(onClick = { aiDifficulty = level }) { Text(level.name.lowercase().replaceFirstChar { it.uppercase() }) }
+                        else OutlinedButton(onClick = { aiDifficulty = level }) { Text(level.name.lowercase().replaceFirstChar { it.uppercase() }) }
+                    }
+                }
             }
             Text("Playable card definitions: ${playableCards.size}")
             if (savedDecks.isNotEmpty()) {
@@ -168,7 +179,7 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
                                     if (instance.card.kind == CardKind.CREATURE) {
                                         Button(onClick = { applyAction(GameAction.Summon(instance.instanceId), state) { game = it; message = "Creature summoned." } }) { Text("Summon") }
                                     } else {
-                                        Button(onClick = { applyAction(GameAction.CastSpell(instance.instanceId), state) { game = it; message = "Spell cast (effect resolution pending)." } }) { Text("Cast") }
+                                        Button(onClick = { applyAction(GameAction.CastSpell(instance.instanceId), state) { game = it; message = "Spell cast and supported effects resolved." } }) { Text("Cast") }
                                     }
                                 }
                             }
