@@ -22,6 +22,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -179,6 +180,7 @@ private fun CardDetailsDialog(
     onDismiss: () -> Unit
 ) {
     val civilizations = jsonStringList(card.civilizationsJson)
+        .map { it.lowercase().replaceFirstChar { letter -> letter.uppercase() } }
     val races = jsonStringList(card.racesJson)
     AlertDialog(
         onDismissRequest = onDismiss,

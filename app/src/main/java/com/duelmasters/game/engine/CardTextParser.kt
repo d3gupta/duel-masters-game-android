@@ -112,6 +112,20 @@ object CardTextParser {
         ) return "METADATA_ONLY"
         if (cardType == "EVOLUTION_CREATURE" && evolutionRace(rulesText) == null) return "METADATA_ONLY"
         val text = normalize(rulesText)
+        val parsedKeywords = keywords(rulesText, catalogMechanics)
+        val creatureOnlyKeywords = setOf(
+            "BLOCKER", "SLAYER", "SPEED_ATTACKER", "DOUBLE_BREAKER",
+            "TRIPLE_BREAKER", "UNBLOCKABLE", "POWER_ATTACKER_2000"
+        )
+        if (cardType == "SPELL" && parsedKeywords.any { it in creatureOnlyKeywords }) {
+            return "METADATA_ONLY"
+        }
+        // The current effect executor resolves these generic patterns for spells only.
+        if (cardType != "SPELL" && effects(rulesText).isNotEmpty()) return "METADATA_ONLY"
+        // Evolution S-Triggers need a host-selection decision during Shield Trigger resolution.
+        if (cardType == "EVOLUTION_CREATURE" && "SHIELD_TRIGGER" in parsedKeywords) {
+            return "METADATA_ONLY"
+        }
         val hasEvolutionClause = text.split(Regex("[.;\\n]+")).any { it.trim().startsWith("evolution") }
         if (hasEvolutionClause && cardType != "EVOLUTION_CREATURE") return "METADATA_ONLY"
         if (text.isBlank()) return "SUPPORTED"
@@ -125,7 +139,7 @@ object CardTextParser {
         val keyword = Regex(
             "(?i)(?:(?:this creature|it) )?(?:has |is a |gets? )?" +
                 "(?:blocker|slayer|speed attacker|double breaker|triple breaker|shield trigger|" +
-                "unblockable|power attacker(?: \\+? ?[0-9,]+)?)"
+                "unblockable|can't be blocked|cannot be blocked|power attacker(?: \\+? ?[0-9,]+)?)"
         )
         if (keyword.matches(clause)) return true
         if (mechanics.any { normalizeKeyword(it) in supportedKeywords } && keyword.matches(clause)) return true
