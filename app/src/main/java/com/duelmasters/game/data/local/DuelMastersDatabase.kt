@@ -57,8 +57,10 @@ abstract class DuelMastersDatabase : RoomDatabase() {
                         FOREIGN KEY(cardId) REFERENCES cards(cardId) ON UPDATE NO ACTION ON DELETE CASCADE
                     )
                 """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_card_printings_cardId ON card_printings(cardId)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_card_printings_setCode ON card_printings(setCode)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_card_printings_collectorNumber ON card_printings(collectorNumber)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_owned_cards_cardId ON owned_cards(cardId)")
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS owned_cards (
                         cardId TEXT NOT NULL,
