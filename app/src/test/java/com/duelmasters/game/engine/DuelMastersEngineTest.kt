@@ -9,13 +9,32 @@ class DuelMastersEngineTest {
         GameCard("$prefix-$i", "Creature $i", CardKind.CREATURE, cost = 1, power = 1000)
     }
 
-    @Test fun deckValidatorRequiresFortyCardsAndCapsCopiesAtFour() {
-        val valid = deck("same").map { it.copy(id = "same") }
+    @Test fun deckValidatorAcceptsFortyOrMoreCardsAndCapsCopiesAtFour() {
+        val valid = deck("same").mapIndexed { index, card -> card.copy(id = "card-$index") }
         assertTrue(DeckValidator.validate(valid).isValid)
+        assertTrue(DeckValidator.validate(valid + valid.take(20)).isValid)
         val tooShort = DeckValidator.validate(valid.drop(1))
-        assertTrue(tooShort.errors.any { it.contains("exactly 40") })
-        val tooManyCopies = DeckValidator.validate(valid + valid.first())
+        assertTrue(tooShort.errors.any { it.contains("at least 40") })
+        val tooManyCopies = DeckValidator.validate(valid + valid.first().copy(id = valid.first().id).let { listOf(it, it, it, it) })
         assertTrue(tooManyCopies.errors.any { it.contains("limit is 4") })
+    }
+
+    @Test fun newGameAcceptsDecksLargerThanFortyCards() {
+        val largeDeck = List(60) { i -> GameCard("large-$i", "Large $i", CardKind.CREATURE, 1, 1000) }
+        val game = DuelMastersEngine.newGame(largeDeck, largeDeck)
+        assertEquals(5, game.players[0].hand.size)
+        assertEquals(5, game.players[0].shields.size)
+        assertEquals(50, game.players[0].deck.size)
+    }
+
+    @Test fun newGameRejectsDecksSmallerThanFortyCards() {
+        val smallDeck = deck("small").drop(1)
+        try {
+            DuelMastersEngine.newGame(smallDeck, deck("valid"))
+            throw AssertionError("Expected deck size validation to fail")
+        } catch (_: IllegalArgumentException) {
+            assertTrue(true)
+        }
     }
 
     @Test fun newGameDealsFiveCardsAndFiveShieldsPerPlayer() {
