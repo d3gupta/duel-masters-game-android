@@ -54,6 +54,4 @@ interface CardDao {
     @Query("DELETE FROM card_printings")
     suspend fun clearPrintings()
 
-    @Query("DELETE FROM cards")
-    suspend fun clearCards()
 }
