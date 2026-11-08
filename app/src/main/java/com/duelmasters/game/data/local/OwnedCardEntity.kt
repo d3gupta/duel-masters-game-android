@@ -11,7 +11,8 @@ import androidx.room.ForeignKey
         parentColumns = ["cardId"],
         childColumns = ["cardId"],
         onDelete = ForeignKey.CASCADE
-    )]
+    )],
+    indices = [androidx.room.Index("cardId")]
 )
 data class OwnedCardEntity(
     val cardId: String,
