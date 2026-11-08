@@ -59,4 +59,17 @@ class GameEngineTest {
         assertEquals(1, result.state.player(1).graveyard.size)
         assertEquals(1, result.state.player(2).graveyard.size)
     }
+    @Test fun blockerInterceptsAttackOnShields() {
+        val attacker = CardInstance(card = creature("Attacker", power = 3000))
+        val blocker = CardInstance(card = creature("Blocker", setOf(Ability.BLOCKER), power = 2000))
+        val shield = CardInstance(card = creature("Shield"))
+        val p1 = PlayerState(1, emptyList(), battle = listOf(attacker))
+        val p2 = PlayerState(2, emptyList(), shields = listOf(shield), battle = listOf(blocker))
+        val result = GameEngine.attack(GameState(listOf(p1, p2)), attacker.instanceId) as GameResult.Success
+        assertEquals(1, result.state.player(2).shields.size)
+        assertTrue(result.state.player(2).battle.isEmpty())
+        assertEquals(1, result.state.player(1).battle.size)
+        assertTrue(result.state.player(1).battle.single().tapped)
+    }
+
 }
