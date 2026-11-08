@@ -490,4 +490,42 @@ class DuelMastersEngineTest {
         assertTrue(result.players[1].battle.isEmpty())
     }
 
+    @Test fun hardAiCompletesAFullOfflineMatchThroughPendingChoices() {
+        val definitions = listOf(
+            GameCard("vanilla", "Vanilla", CardKind.CREATURE, 1, 1000),
+            GameCard("fighter", "Fighter", CardKind.CREATURE, 2, 3000),
+            GameCard("blocker", "Blocker", CardKind.CREATURE, 2, 2000, keywords = setOf("BLOCKER")),
+            GameCard("speed", "Speed", CardKind.CREATURE, 2, 2000, keywords = setOf("SPEED_ATTACKER")),
+            GameCard("double", "Double", CardKind.CREATURE, 4, 5000, keywords = setOf("DOUBLE_BREAKER")),
+            GameCard("slayer", "Slayer", CardKind.CREATURE, 3, 1000, keywords = setOf("SLAYER")),
+            GameCard("draw", "Draw Spell", CardKind.SPELL, 2, effects = listOf(CardEffect(EffectKind.DRAW_CARDS))),
+            GameCard("boost", "Boost Spell", CardKind.SPELL, 2,
+                effects = listOf(CardEffect(EffectKind.BOOST_FRIENDLY_CREATURES, 1000))),
+            GameCard("trigger", "Trigger Spell", CardKind.SPELL, 4, shieldTrigger = true,
+                effects = listOf(CardEffect(EffectKind.DRAW_CARDS))),
+            GameCard("trigger-creature", "Trigger Creature", CardKind.CREATURE, 5, 4000, shieldTrigger = true)
+        )
+        val deck = definitions.flatMap { definition -> List(4) { definition } }
+        var state = DuelMastersEngine.newGame(deck, deck, "AI One", "AI Two")
+        var actionCount = 0
+
+        while (state.winner == null && state.turn < 80 && actionCount < 4000) {
+            val action = if (state.pendingChoice != null) {
+                DuelMastersAi.respondToChoice(state, AiDifficulty.HARD, kotlin.random.Random(actionCount))
+            } else {
+                DuelMastersAi.chooseAction(state, AiDifficulty.HARD, kotlin.random.Random(actionCount))
+            }
+            assertTrue("AI must always provide a response to a pending choice.", action != null)
+            when (val result = DuelMastersEngine.apply(state, action!!)) {
+                is ActionResult.Success -> state = result.state
+                is ActionResult.Rejected -> throw AssertionError("AI produced an illegal action: ${result.reason}")
+            }
+            actionCount++
+        }
+
+        assertTrue("The simulated match should reach a winner before the safety cap.", state.winner != null)
+        assertTrue("The simulation should complete within the action safety cap.", actionCount < 4000)
+    }
+
+
 }
