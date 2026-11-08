@@ -224,13 +224,25 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
                         }.forEach { blocker ->
                             Button(onClick = {
                                 submit(GameAction.ChooseBlocker(blocker.instanceId), state,
-                                    onSuccess = { game = it; revealedChoiceKey = it.pendingChoice?.toString(); message = "Blocker chosen." },
+                                    onSuccess = {
+                                game = it
+                                revealedChoiceKey = it.pendingChoice?.toString()
+                                waitingForTurnReveal = mode == MatchMode.LOCAL &&
+                                    it.pendingChoice == null && state.activePlayer != me.id
+                                message = "Blocker chosen."
+                            },
                                     onFailure = { message = it })
                             }) { Text("Block with " + blocker.card.name + " (" + blocker.currentPower + ")") }
                         }
                         OutlinedButton(onClick = {
                             submit(GameAction.ChooseBlocker(null), state,
-                                onSuccess = { game = it; revealedChoiceKey = it.pendingChoice?.toString(); message = "Attack not blocked." },
+                                onSuccess = {
+                                game = it
+                                revealedChoiceKey = it.pendingChoice?.toString()
+                                waitingForTurnReveal = mode == MatchMode.LOCAL &&
+                                    it.pendingChoice == null && state.activePlayer != me.id
+                                message = "Attack not blocked."
+                            },
                                 onFailure = { message = it })
                         }) { Text("Do not block") }
                     }
@@ -243,12 +255,24 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
                         }
                         Button(onClick = {
                             submit(GameAction.ResolveShieldTrigger(true), state,
-                                onSuccess = { game = it; revealedChoiceKey = it.pendingChoice?.toString(); message = "Shield Trigger used." },
+                                onSuccess = {
+                                game = it
+                                revealedChoiceKey = it.pendingChoice?.toString()
+                                waitingForTurnReveal = mode == MatchMode.LOCAL &&
+                                    it.pendingChoice == null && state.activePlayer != me.id
+                                message = "Shield Trigger used."
+                            },
                                 onFailure = { message = it })
                         }) { Text("Use Shield Trigger for free") }
                         OutlinedButton(onClick = {
                             submit(GameAction.ResolveShieldTrigger(false), state,
-                                onSuccess = { game = it; revealedChoiceKey = it.pendingChoice?.toString(); message = "Shield added to hand." },
+                                onSuccess = {
+                                game = it
+                                revealedChoiceKey = it.pendingChoice?.toString()
+                                waitingForTurnReveal = mode == MatchMode.LOCAL &&
+                                    it.pendingChoice == null && state.activePlayer != me.id
+                                message = "Shield added to hand."
+                            },
                                 onFailure = { message = it })
                         }) { Text("Add shield to hand") }
                     }
@@ -259,7 +283,13 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
                         }.forEach { target ->
                             Button(onClick = {
                                 submit(GameAction.ChooseEffectTarget(target.instanceId), state,
-                                    onSuccess = { game = it; revealedChoiceKey = it.pendingChoice?.toString(); message = target.card.name + " selected." },
+                                    onSuccess = {
+                                game = it
+                                revealedChoiceKey = it.pendingChoice?.toString()
+                                waitingForTurnReveal = mode == MatchMode.LOCAL &&
+                                    it.pendingChoice == null && state.activePlayer != me.id
+                                message = target.card.name + " selected."
+                            },
                                     onFailure = { message = it })
                             }) { Text(target.card.name + " • Power " + target.currentPower) }
                         }
