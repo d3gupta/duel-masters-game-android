@@ -46,6 +46,10 @@ app/src/main/java/com/duelmasters/game/data/
 The JSON catalog is the portable source-of-truth import format. Room is the runtime query store.
 Do not query a remote website at runtime; the game must work offline.
 
+### Current bundled snapshot
+
+The initial bundled import is 1,152 card definitions and 1,267 printings from the available JSON source snapshot, covering DM-01 through DM-17 plus promotional entries. It is a useful playable catalogue foundation, but it is **not** the requested complete DM-35 / 2,600+ catalogue. The separate SimpleJavaDmdb SQLite file is the identified expanded source; its binary cannot be retrieved through the connected GitHub file reader. Add that SQLite file (or an authorized UTF-8 export) and convert it before describing the app catalogue as complete through DM-35.
+
 ## Data model rules
 
 - A **card definition** represents the game object and its rules text.
