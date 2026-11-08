@@ -21,5 +21,12 @@
       "redistributionLicenseStatus": "UNVERIFIED",
       "usage": "Schema and historical metadata reference; insufficient alone for expanded DM-35 coverage."
     }
-  ]
+  ],
+  "importedSnapshot": {
+    "source": "https://github.com/Latepate64/duel-masters-json",
+    "cardDefinitions": 1152,
+    "printings": 1267,
+    "coverage": "DM-01 through DM-17 plus promotional entries",
+    "completeThroughDM35": false
+  }
 }
