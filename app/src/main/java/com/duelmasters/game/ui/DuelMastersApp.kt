@@ -96,6 +96,13 @@ private fun CardCatalogueScreen(modifier: Modifier = Modifier) {
                 ) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(card.name, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            if (card.implementationStatus == "SUPPORTED") "Rules supported • playable"
+                            else "Catalogue entry • rules not yet implemented",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (card.implementationStatus == "SUPPORTED") MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.error
+                        )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(card.type.replace('_', ' '), style = MaterialTheme.typography.labelMedium)
                             Text("Cost: ${card.cost ?: "—"}", style = MaterialTheme.typography.labelMedium)

@@ -36,6 +36,7 @@ fun DeckBuilderScreen(database: DuelMastersDatabase, modifier: Modifier = Modifi
         database.cardDao().search("", "", "", null, "", "", "", 5000, 0)
     }.collectAsState(initial = emptyList())
     val cards = remember(allCards) { allCards.mapNotNull { entity -> entity.toGameCard()?.let { entity to it } } }
+    val unsupportedCount = remember(allCards) { allCards.count { it.implementationStatus != "SUPPORTED" } }
     val savedDecksFlow = remember(database) { database.deckDao().observeAll() }
     val savedDecks by savedDecksFlow.collectAsState(initial = emptyList())
     var deckName by rememberSaveable { mutableStateOf("My Deck") }
@@ -73,6 +74,11 @@ fun DeckBuilderScreen(database: DuelMastersDatabase, modifier: Modifier = Modifi
             singleLine = true
         )
         Text("Cards: ${selectedCards.size} • Unique names: ${selectedCards.map { it.name.lowercase() }.distinct().size}")
+        Text(
+            "Only rules-supported cards are deck-eligible. ${unsupportedCount} catalogue entries remain browse-only until their effects are implemented.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.secondary
+        )
         Text(
             if (validation.isValid) "Deck is valid" else validation.errors.joinToString(" "),
             color = if (validation.isValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
