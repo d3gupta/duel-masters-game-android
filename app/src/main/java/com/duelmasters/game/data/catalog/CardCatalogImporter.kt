@@ -137,7 +137,7 @@ class CardCatalogImporter(
                     val rulesText = cursor.string("card_text").orEmpty()
                     val setRaw = cursor.string("card_set").orEmpty()
                     val setCode = normalizeSetCode(setRaw)
-                    val releaseClass = releaseClassForSet(setCode)
+                    val releaseClass = releaseClassForSet(setCode, sourceId.toIntOrNull())
                     val cardType = normalizeCardType(typeRaw)
                     val civilizations = civilizationRaw.split('/')
                         .mapNotNull { normalizeCivilization(it) }
@@ -204,8 +204,8 @@ class CardCatalogImporter(
         return raw.trim().uppercase().ifBlank { "UNKNOWN" }
     }
 
-    private fun releaseClassForSet(setCode: String): String {
-        if (setCode == "PROMO") return "PROMOTIONAL"
+    private fun releaseClassForSet(setCode: String, sourceId: Int?): String {
+        if (setCode == "PROMO" || sourceId in 9001..9080) return "PROMOTIONAL"
         val number = Regex("DM-(\\d+)").find(setCode)?.groupValues?.get(1)?.toIntOrNull()
         return when {
             number == null -> "UNVERIFIED"
