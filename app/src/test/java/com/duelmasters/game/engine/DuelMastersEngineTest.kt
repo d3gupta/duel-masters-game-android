@@ -9,6 +9,15 @@ class DuelMastersEngineTest {
         GameCard("$prefix-$i", "Creature $i", CardKind.CREATURE, cost = 1, power = 1000)
     }
 
+    @Test fun deckValidatorRequiresFortyCardsAndCapsCopiesAtFour() {
+        val valid = deck("same").map { it.copy(id = "same") }
+        assertTrue(DeckValidator.validate(valid).isValid)
+        val tooShort = DeckValidator.validate(valid.drop(1))
+        assertTrue(tooShort.errors.any { it.contains("exactly 40") })
+        val tooManyCopies = DeckValidator.validate(valid + valid.first())
+        assertTrue(tooManyCopies.errors.any { it.contains("limit is 4") })
+    }
+
     @Test fun newGameDealsFiveCardsAndFiveShieldsPerPlayer() {
         val game = DuelMastersEngine.newGame(deck("a"), deck("b"))
         assertEquals(5, game.players[0].hand.size)
