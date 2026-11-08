@@ -114,7 +114,9 @@ object GameEngine {
         if (attacker.summonedThisTurn && Ability.SPEED_ATTACKER !in attacker.card.abilities) return GameResult.Rejected("A creature cannot attack the turn it is summoned.")
         if (targetCreatureId != null) {
             val target = enemy.battle.firstOrNull { it.instanceId == targetCreatureId } ?: return GameResult.Rejected("Target creature not found.")
-            val defender = enemy.battle.firstOrNull { Ability.BLOCKER in it.card.abilities && !it.tapped && Ability.UNBLOCKABLE !in attacker.card.abilities }
+            val availableBlocker = enemy.battle.firstOrNull { Ability.BLOCKER in it.card.abilities && !it.tapped && Ability.UNBLOCKABLE !in attacker.card.abilities }
+            if (!target.tapped && availableBlocker == null) return GameResult.Rejected("You can only attack a tapped creature.")
+            val defender = availableBlocker
             val actualTarget = defender ?: target
             val attackPower = attacker.currentPower + if (Ability.POWER_ATTACKER_2000 in attacker.card.abilities) 2000 else 0
             val defensePower = actualTarget.currentPower
@@ -139,7 +141,7 @@ object GameEngine {
             Ability.BLOCKER in it.card.abilities && !it.tapped &&
                 Ability.UNBLOCKABLE !in attacker.card.abilities
         }
-        if (faceBlocker != null && enemy.shields.isNotEmpty()) {
+        if (faceBlocker != null) {
             return resolveBlockerBattle(state, p, enemy, attacker, faceBlocker)
         }
         if (enemy.shields.isNotEmpty()) {
