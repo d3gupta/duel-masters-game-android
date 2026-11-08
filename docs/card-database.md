@@ -43,12 +43,9 @@ app/src/main/java/com/duelmasters/game/data/
     CardDao.kt
 ```
 
-The JSON catalog is the portable source-of-truth import format. Room is the runtime query store.
-Do not query a remote website at runtime; the game must work offline.
+The bundled SimpleJavaDmdb SQLite snapshot is the import source; Room is the runtime query store. The SQLite file is included as base64 text in app assets and decoded locally on first import. The app does not query a remote website at runtime and works offline.
 
-### Current bundled snapshot
-
-The initial bundled import is 1,152 card definitions and 1,267 printings from the available JSON source snapshot, covering DM-01 through DM-17 plus promotional entries. It is a useful playable catalogue foundation, but it is **not** the requested complete DM-35 / 2,600+ catalogue. The separate SimpleJavaDmdb SQLite file is the identified expanded source; its binary cannot be retrieved through the connected GitHub file reader. Add that SQLite file (or an authorized UTF-8 export) and convert it before describing the app catalogue as complete through DM-35.
+The source repository describes 2,600+ English card entries through DM-35 and 180+ card animations. The Android importer reads the Card and RulesText tables, groups identical card definitions, and imports each source row as a printing. The current importer does not import the video animations or artwork. Runtime card/printing totals are recorded in card_catalog_metadata after import. The JSON Schema in this directory defines the portable normalized interchange format for future catalogue exports and additional authorized data sources.
 
 ## Data model rules
 
