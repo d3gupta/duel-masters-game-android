@@ -252,7 +252,7 @@ class DuelMastersEngineTest {
             PlayerState(1, "P2", emptyList(), battle = listOf(blocker))
         ))
         val result = DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success
-        assertEquals(null, result.state.winner)
+        assertTrue(result.state.winner == null)
         assertTrue(result.state.players[0].battle.isEmpty())
         assertEquals(1, result.state.players[1].battle.size)
     }
