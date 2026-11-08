@@ -2,6 +2,7 @@ package com.duelmasters.game.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -85,7 +86,7 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
     }
 
     Column(
-        modifier = modifier.fillMaxSize().padding(14.dp),
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text("Battlefield", style = MaterialTheme.typography.headlineMedium)
