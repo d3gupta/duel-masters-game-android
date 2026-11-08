@@ -205,7 +205,7 @@ private fun applyAction(action: GameAction, state: GameState, onSuccess: (GameSt
     }
 }
 
-private fun CardEntity.toGameCard(): GameCard? {
+internal fun CardEntity.toGameCard(): GameCard? {
     val kind = when (type) {
         "CREATURE", "EVOLUTION_CREATURE" -> CardKind.CREATURE
         "SPELL" -> CardKind.SPELL
