@@ -39,6 +39,7 @@ fun DeckBuilderScreen(database: DuelMastersDatabase, modifier: Modifier = Modifi
     val savedDecksFlow = remember(database) { database.deckDao().observeAll() }
     val savedDecks by savedDecksFlow.collectAsState(initial = emptyList())
     var deckName by rememberSaveable { mutableStateOf("My Deck") }
+    var editingDeckId by rememberSaveable { mutableStateOf<Long?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
     var quantities by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var status by remember { mutableStateOf("Add cards to build a deck. There is no maximum deck size.") }
@@ -87,14 +88,15 @@ fun DeckBuilderScreen(database: DuelMastersDatabase, modifier: Modifier = Modifi
                     }
                     scope.launch {
                         database.deckDao().upsert(
-                            DeckEntity(name = deckName.trim(), cardIdsJson = ids.toString())
+                            DeckEntity(id = editingDeckId ?: 0L, name = deckName.trim(), cardIdsJson = ids.toString())
                         )
-                        status = "Saved deck: $deckName"
+                        status = if (editingDeckId == null) "Saved deck: $deckName" else "Updated deck: $deckName"
+                        editingDeckId = null
                         quantities = emptyMap()
                     }
                 }
             ) { Text("Save deck") }
-            OutlinedButton(onClick = { quantities = emptyMap(); status = "Deck cleared." }) { Text("Clear") }
+            OutlinedButton(onClick = { quantities = emptyMap(); editingDeckId = null; deckName = "My Deck"; status = "New deck started." }) { Text("New") }
         }
         Text(status, style = MaterialTheme.typography.bodySmall)
         Text("Card pool", style = MaterialTheme.typography.titleMedium)
@@ -134,9 +136,33 @@ fun DeckBuilderScreen(database: DuelMastersDatabase, modifier: Modifier = Modifi
             }
         }
         Text("Saved decks (${savedDecks.size})", style = MaterialTheme.typography.titleSmall)
-        savedDecks.take(3).forEach { deck ->
+        savedDecks.forEach { deck ->
             val count = runCatching { JSONArray(deck.cardIdsJson).length() }.getOrDefault(0)
-            Text("${deck.name} • $count cards", style = MaterialTheme.typography.bodySmall)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("${deck.name} • $count cards", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                OutlinedButton(onClick = {
+                    val restored = runCatching {
+                        val ids = JSONArray(deck.cardIdsJson)
+                        buildMap {
+                            repeat(ids.length()) { index ->
+                                val id = ids.getString(index)
+                                put(id, (get(id) ?: 0) + 1)
+                            }
+                        }
+                    }.getOrDefault(emptyMap())
+                    quantities = restored
+                    deckName = deck.name
+                    editingDeckId = deck.id
+                    status = "Editing ${deck.name}"
+                }) { Text("Edit") }
+                OutlinedButton(onClick = {
+                    scope.launch {
+                        database.deckDao().deleteById(deck.id)
+                        if (editingDeckId == deck.id) { editingDeckId = null; quantities = emptyMap() }
+                        status = "Deleted ${deck.name}"
+                    }
+                }) { Text("Delete") }
+            }
         }
     }
 }
