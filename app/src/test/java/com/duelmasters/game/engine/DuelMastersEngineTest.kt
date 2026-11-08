@@ -183,7 +183,8 @@ class DuelMastersEngineTest {
         val result = DuelMastersEngine.apply(state, GameAction.AttackCreature("attacker", "slayer")) as ActionResult.Success
         assertTrue(result.state.players[0].battle.isEmpty())
         assertEquals(1, result.state.players[0].graveyard.size)
-        assertEquals(1, result.state.players[1].battle.size)
+        assertTrue(result.state.players[1].battle.isEmpty())
+        assertEquals(1, result.state.players[1].graveyard.size)
     }
 
     @Test fun supportedCardTextKeywordsAreRecognized() {
