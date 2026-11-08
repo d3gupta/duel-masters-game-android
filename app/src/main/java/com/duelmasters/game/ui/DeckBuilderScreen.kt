@@ -36,7 +36,8 @@ fun DeckBuilderScreen(database: DuelMastersDatabase, modifier: Modifier = Modifi
         database.cardDao().search("", "", "", null, "", "", "", 5000, 0)
     }.collectAsState(initial = emptyList())
     val cards = remember(allCards) { allCards.mapNotNull { entity -> entity.toGameCard()?.let { entity to it } } }
-    val savedDecks by database.deckDao().observeAll().collectAsState(initial = emptyList())
+    val savedDecksFlow = remember(database) { database.deckDao().observeAll() }
+    val savedDecks by savedDecksFlow.collectAsState(initial = emptyList())
     var deckName by rememberSaveable { mutableStateOf("My Deck") }
     var query by rememberSaveable { mutableStateOf("") }
     var quantities by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
