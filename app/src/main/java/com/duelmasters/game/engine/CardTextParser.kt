@@ -73,7 +73,7 @@ object CardTextParser {
     }
 
     fun powerAttackBonus(rulesText: String): Int =
-        Regex("(?:power attacker|gets?)\\s*\\+\\s*([0-9,]+)\\s*power")
+        Regex("(?:power attacker|gets?)\\s*\\+\\s*([0-9,]+)(?:\\s*power)?")
             .find(normalize(rulesText))?.groupValues?.get(1)?.replace(",", "")?.toIntOrNull() ?: 0
 
     fun evolutionRace(rulesText: String): String? {

@@ -423,6 +423,7 @@ class DuelMastersEngineTest {
             CardTextParser.evolutionRace("Evolution—Put on one of your Beast Folk creatures.")
         )
         assertEquals(3000, CardTextParser.powerAttackBonus("Power Attacker +3,000"))
+        assertEquals(2000, CardTextParser.powerAttackBonus("Power Attacker +2000"))
     }
 
     @Test fun shieldTriggerResolutionContinuesRemainingDoubleBreakerShieldSteps() {
