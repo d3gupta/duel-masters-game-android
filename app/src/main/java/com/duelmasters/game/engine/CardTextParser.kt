@@ -58,8 +58,7 @@ object CardTextParser {
             Regex("add the top card of your deck to your shields").containsMatchIn(text)) {
             result += CardEffect(EffectKind.ADD_TOP_CARD_TO_SHIELD)
         }
-        if (Regex("(?:un)?tap all of your creatures").containsMatchIn(text) ||
-            Regex("untap all of your creatures").containsMatchIn(text)) {
+        if (Regex("untap all of your creatures").containsMatchIn(text)) {
             result += CardEffect(EffectKind.UNTAP_FRIENDLY_CREATURES)
         }
 

@@ -196,6 +196,10 @@ object DuelMastersEngine {
                     success(resolveBlockerChoice(state, pending, action.blockerInstanceId))
                 pending is PendingChoice.ShieldTrigger && action is GameAction.ResolveShieldTrigger ->
                     success(resolveShieldChoice(state, pending, action.useTrigger))
+                pending is PendingChoice.EffectTarget && action is GameAction.ChooseEffectTarget &&
+                    (action.targetInstanceId !in pending.targetInstanceIds ||
+                        state.players[pending.targetPlayerId].battle.none { it.instanceId == action.targetInstanceId }) ->
+                    ActionResult.Rejected("That creature is no longer a legal target.")
                 pending is PendingChoice.EffectTarget && action is GameAction.ChooseEffectTarget ->
                     success(resolveEffectTarget(state, pending, action.targetInstanceId))
                 else -> ActionResult.Rejected("Resolve the pending decision before taking another action.")
@@ -420,10 +424,6 @@ object DuelMastersEngine {
         choice: PendingChoice.EffectTarget,
         targetInstanceId: String
     ): GameState {
-        if (targetInstanceId !in choice.targetInstanceIds) {
-            return state.copy(pendingChoice = null, resolutionQueue = emptyList())
-                .addLog("Effect cancelled: the selected target is not valid.")
-        }
         val targetPlayer = state.players[choice.targetPlayerId]
         val target = targetPlayer.battle.firstOrNull { it.instanceId == targetInstanceId }
             ?: return processResolution(state.copy(pendingChoice = null), state.resolutionQueue)
@@ -513,7 +513,9 @@ object DuelMastersEngine {
             EffectKind.DESTROY_TARGET_OPPONENT,
             EffectKind.RETURN_TARGET_OPPONENT,
             EffectKind.TAP_TARGET_OPPONENT -> {
-                val candidates = opponent.battle.map { it.instanceId }
+                val candidates = opponent.battle
+                    .filter { effect.kind != EffectKind.TAP_TARGET_OPPONENT || !it.tapped }
+                    .map { it.instanceId }
                 if (candidates.isNotEmpty()) {
                     state = state.copy(pendingChoice = PendingChoice.EffectTarget(
                         ownerId, opponentId, effect, candidates
