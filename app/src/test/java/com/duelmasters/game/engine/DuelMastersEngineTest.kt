@@ -15,7 +15,8 @@ class DuelMastersEngineTest {
         assertTrue(DeckValidator.validate(valid + valid.take(20)).isValid)
         val tooShort = DeckValidator.validate(valid.drop(1))
         assertTrue(tooShort.errors.any { it.contains("at least 40") })
-        val tooManyCopies = DeckValidator.validate(valid + valid.first().copy(id = valid.first().id).let { listOf(it, it, it, it) })
+        val fiveSameName = List(5) { index -> GameCard("variant-$index", "Same Card", CardKind.CREATURE, 1, 1000) } + valid.take(35)
+        val tooManyCopies = DeckValidator.validate(fiveSameName)
         assertTrue(tooManyCopies.errors.any { it.contains("limit is 4") })
     }
 
@@ -25,6 +26,17 @@ class DuelMastersEngineTest {
         assertEquals(5, game.players[0].hand.size)
         assertEquals(5, game.players[0].shields.size)
         assertEquals(50, game.players[0].deck.size)
+    }
+
+    @Test fun newGameRejectsMoreThanFourCopiesByCardName() {
+        val repeated = List(5) { index -> GameCard("different-id-$index", "Same Card", CardKind.CREATURE, 1, 1000) } +
+            List(35) { index -> GameCard("other-$index", "Other $index", CardKind.CREATURE, 1, 1000) }
+        try {
+            DuelMastersEngine.newGame(repeated, deck("valid"))
+            throw AssertionError("Expected copy limit validation to fail")
+        } catch (_: IllegalArgumentException) {
+            assertTrue(true)
+        }
     }
 
     @Test fun newGameRejectsDecksSmallerThanFortyCards() {
