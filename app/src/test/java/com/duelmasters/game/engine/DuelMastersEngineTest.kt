@@ -69,6 +69,17 @@ class DuelMastersEngineTest {
         assertEquals(0, result.state.players[0].availableMana)
     }
 
+    @Test fun cannotAttackAnUntappedCreature() {
+        val attacker = CardInstance("attacker", GameCard("a", "Attacker", CardKind.CREATURE, 1, 3000), summoningSick = false)
+        val defender = CardInstance("defender", GameCard("d", "Defender", CardKind.CREATURE, 1, 1000), tapped = false, summoningSick = false)
+        val game = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
+            PlayerState(1, "P2", emptyList(), battle = listOf(defender))
+        ))
+        val result = DuelMastersEngine.apply(game, GameAction.AttackCreature("attacker", "defender"))
+        assertTrue(result is ActionResult.Rejected)
+    }
+
     @Test fun rejectedActionDoesNotMutateOriginalState() {
         val game = DuelMastersEngine.newGame(deck("a"), deck("b"))
         val before = game.players[0]
