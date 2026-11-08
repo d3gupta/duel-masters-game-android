@@ -19,5 +19,8 @@ data class CardEntity(
     val effectDefinitionIdsJson: String,
     val sourceName: String,
     val sourceUrl: String,
+    val sourceRecordId: String,
+    val language: String,
+    val verifiedAt: String?,
     val releaseClass: String
 )
