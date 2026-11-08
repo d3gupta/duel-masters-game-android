@@ -148,6 +148,7 @@ object DuelMastersEngine {
                 val attacker = player.battle.find { it.instanceId == action.attackerInstanceId } ?: return reject("Attacker is not on your battle zone.")
                 val defender = opponent.battle.find { it.instanceId == action.defenderInstanceId } ?: return reject("Defender is not on the opponent's battle zone.")
                 if (!canAttack(attacker)) return reject("That creature cannot attack yet.")
+                if (!defender.tapped) return reject("You can only attack a tapped creature.")
                 val a = attacker.copy(tapped = true)
                 val attackerWon = attacker.card.power > defender.card.power
                 val defenderWon = defender.card.power > attacker.card.power
