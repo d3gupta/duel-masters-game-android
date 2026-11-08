@@ -15,6 +15,8 @@ players and AI; actions are validated by the same immutable state machine.
 
 - Five opening cards and five shields per player; turn draw, deck-out loss, one mana
   charge per turn, mana payment, untap and turn progression.
+- Paper mana payment checks each printed civilization using a distinct source card;
+  multicolored sources enter tapped and five-civilization sources provide zero numeric mana.
 - Summoning sickness, Speed Attacker, evolution onto a matching race, and stacked
   evolution cards moving together when destroyed or returned.
 - Attacks to shields and tapped creatures; direct victory after shields are gone.

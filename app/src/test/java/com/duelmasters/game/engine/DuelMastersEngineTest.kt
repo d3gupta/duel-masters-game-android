@@ -463,6 +463,151 @@ class DuelMastersEngineTest {
         )
     }
 
+    @Test fun evolutionInheritsTapStateAndTemporaryPowerFromItsSource() {
+        val host = CardInstance(
+            "host",
+            GameCard("host-card", "Tapped Host", CardKind.CREATURE, 1, 3000, races = setOf("Beast Folk")),
+            tapped = true,
+            summoningSick = true,
+            powerModifier = 2000,
+            powerModifierExpiresAtTurn = 4
+        )
+        val evolution = CardInstance(
+            "evo-hand",
+            GameCard(
+                "evo", "Evolution", CardKind.CREATURE, 2, 5000,
+                races = setOf("Phoenix"), evolutionRace = "Beast Folk", isEvolution = true
+            )
+        )
+        val mana = listOf(
+            CardInstance("m1", GameCard("m1", "M1", CardKind.CREATURE, 1)),
+            CardInstance("m2", GameCard("m2", "M2", CardKind.CREATURE, 1))
+        )
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), hand = listOf(evolution), mana = mana, battle = listOf(host)),
+            PlayerState(1, "P2", emptyList())
+        ))
+
+        val result = (DuelMastersEngine.apply(state, GameAction.Summon("evo-hand", "host")) as ActionResult.Success).state
+        val evolved = result.players[0].battle.single { it.card.id == "evo" }
+        assertTrue("Evolution must inherit the source creature's tapped state.", evolved.tapped)
+        assertFalse("Evolution creatures do not have summoning sickness.", evolved.summoningSick)
+        assertEquals(2000, evolved.powerModifier)
+        assertEquals(4, evolved.powerModifierExpiresAtTurn)
+        assertEquals(7000, evolved.currentPower)
+    }
+
+    @Test fun manaPaymentRequiresEveryCardCivilizationFromDistinctSources() {
+        val spell = CardInstance(
+            "spell",
+            GameCard("spell-card", "Water Darkness Spell", CardKind.SPELL, 2,
+                civilizations = setOf("WATER", "DARKNESS"))
+        )
+        val sharedSource = CardInstance(
+            "shared",
+            GameCard("shared-card", "Water Darkness Mana", CardKind.CREATURE, 1,
+                civilizations = setOf("WATER", "DARKNESS"))
+        )
+        val insufficient = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), hand = listOf(spell), mana = listOf(sharedSource)),
+            PlayerState(1, "P2", emptyList())
+        ))
+        assertTrue(DuelMastersEngine.apply(insufficient, GameAction.CastSpell("spell")) is ActionResult.Rejected)
+
+        val darknessSource = CardInstance("dark", GameCard("dark-card", "Darkness Mana", CardKind.CREATURE, 1,
+            civilizations = setOf("DARKNESS")))
+        val sufficient = insufficient.copy(
+            players = listOf(
+                insufficient.players[0].copy(mana = listOf(sharedSource, darknessSource)),
+                insufficient.players[1]
+            )
+        )
+        val result = DuelMastersEngine.apply(sufficient, GameAction.CastSpell("spell")) as ActionResult.Success
+        assertTrue(result.state.players[0].mana.first { it.instanceId == "shared" }.tapped)
+        assertTrue(result.state.players[0].mana.first { it.instanceId == "dark" }.tapped)
+    }
+
+    @Test fun fiveCivilizationManaCanPayOneColorButHasNoNumericValue() {
+        val spell = CardInstance(
+            "spell",
+            GameCard("spell-card", "Water Spell", CardKind.SPELL, 1, civilizations = setOf("WATER"))
+        )
+        val fiveColorMana = CardInstance(
+            "five-color",
+            GameCard(
+                "five-color-card", "Five Civilization Mana", CardKind.CREATURE, 5,
+                civilizations = setOf("LIGHT", "WATER", "DARKNESS", "FIRE", "NATURE")
+            )
+        )
+        val fireMana = CardInstance(
+            "fire",
+            GameCard("fire-card", "Fire Mana", CardKind.CREATURE, 1, civilizations = setOf("FIRE"))
+        )
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), hand = listOf(spell), mana = listOf(fiveColorMana, fireMana)),
+            PlayerState(1, "P2", emptyList())
+        ))
+        val result = DuelMastersEngine.apply(state, GameAction.CastSpell("spell")) as ActionResult.Success
+        assertTrue(result.state.players[0].mana.first { it.instanceId == "five-color" }.tapped)
+        assertTrue(result.state.players[0].mana.first { it.instanceId == "fire" }.tapped)
+        assertEquals(0, GameCard(
+            "five", "Five", CardKind.CREATURE, 5,
+            civilizations = setOf("LIGHT", "WATER", "DARKNESS", "FIRE", "NATURE")
+        ).manaValue)
+    }
+
+    @Test fun zeroNumericCostStillRequiresItsCivilizationSource() {
+        val zeroCostWaterSpell = CardInstance(
+            "zero-spell",
+            GameCard("zero-spell-card", "Zero Cost Water", CardKind.SPELL, 0, civilizations = setOf("WATER"))
+        )
+        val fireMana = CardInstance(
+            "fire",
+            GameCard("fire-card", "Fire Mana", CardKind.CREATURE, 1, civilizations = setOf("FIRE"))
+        )
+        val valid = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), hand = listOf(zeroCostWaterSpell), mana = listOf(fireMana)),
+            PlayerState(1, "P2", emptyList())
+        ))
+        assertTrue(DuelMastersEngine.apply(valid, GameAction.CastSpell("zero-spell")) is ActionResult.Rejected)
+    }
+
+    @Test fun wrongCivilizationManaCannotPayForSpell() {
+        val spell = CardInstance(
+            "spell",
+            GameCard("spell-card", "Water Spell", CardKind.SPELL, 1, civilizations = setOf("WATER"))
+        )
+        val fireMana = CardInstance(
+            "fire-mana",
+            GameCard("fire-card", "Fire Mana", CardKind.CREATURE, 1, civilizations = setOf("FIRE"))
+        )
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), hand = listOf(spell), mana = listOf(fireMana)),
+            PlayerState(1, "P2", emptyList())
+        ))
+        assertTrue(DuelMastersEngine.apply(state, GameAction.CastSpell("spell")) is ActionResult.Rejected)
+    }
+
+    @Test fun multicoloredManaEntersTappedAndFiveCivilizationManaHasZeroValue() {
+        val multicolored = CardInstance(
+            "multi",
+            GameCard("multi-card", "Light Water Mana", CardKind.CREATURE, 2,
+                civilizations = setOf("LIGHT", "WATER"))
+        )
+        val fiveCivilization = GameCard(
+            "five", "Five Civilization Mana", CardKind.CREATURE, 5,
+            civilizations = setOf("LIGHT", "WATER", "DARKNESS", "FIRE", "NATURE")
+        )
+        val handState = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), hand = listOf(multicolored)),
+            PlayerState(1, "P2", emptyList())
+        ))
+        val charged = (DuelMastersEngine.apply(handState, GameAction.ChargeMana("multi")) as ActionResult.Success).state
+        assertTrue(charged.players[0].mana.single().tapped)
+        assertEquals(0, charged.players[0].availableMana)
+        assertEquals(0, fiveCivilization.manaValue)
+    }
+
     @Test fun shieldTriggerResolutionContinuesRemainingDoubleBreakerShieldSteps() {
         val attacker = CardInstance(
             "attacker",

@@ -40,7 +40,10 @@ data class GameCard(
     val evolutionRace: String? = null,
     val isEvolution: Boolean = false,
     val powerAttackBonus: Int = 0
-)
+) {
+    /** Five-civilization mana cards provide civilization but no numeric mana. */
+    val manaValue: Int get() = if (civilizations.size >= 5) 0 else 1
+}
 
 data class CardInstance(
     val instanceId: String,
@@ -67,8 +70,8 @@ data class PlayerState(
     val graveyard: List<CardInstance> = emptyList(),
     val lost: Boolean = false
 ) {
-    val tappedMana: Int get() = mana.count { it.tapped }
-    val availableMana: Int get() = mana.size - tappedMana
+    val tappedMana: Int get() = mana.filter { it.tapped }.sumOf { it.card.manaValue }
+    val availableMana: Int get() = mana.filterNot { it.tapped }.sumOf { it.card.manaValue }
 }
 
 sealed interface PendingChoice {
@@ -241,10 +244,11 @@ object DuelMastersEngine {
                 if (state.manaChargedThisTurn) return reject("You may charge only one mana card per turn.")
                 val card = player.hand.find { it.instanceId == action.handInstanceId }
                     ?: return reject("That card is not in your hand.")
+                val entersTapped = card.card.civilizations.size > 1
                 success(
                     state.replace(player.copy(
                         hand = player.hand - card,
-                        mana = player.mana + card.copy(tapped = false, summoningSick = false)
+                        mana = player.mana + card.copy(tapped = entersTapped, summoningSick = false)
                     )).copy(manaChargedThisTurn = true).addLog("${card.card.name} charged to mana.")
                 )
             }
@@ -253,7 +257,9 @@ object DuelMastersEngine {
                 val card = player.hand.find { it.instanceId == action.handInstanceId }
                     ?: return reject("That card is not in your hand.")
                 if (card.card.kind != CardKind.CREATURE) return reject("Only creatures can be summoned.")
-                if (player.availableMana < card.card.cost) return reject("Not enough untapped mana.")
+                if (!canPayMana(player, card.card.cost, card.card.civilizations)) {
+                    return reject("Not enough untapped mana of the required civilizations.")
+                }
 
                 var host: CardInstance? = null
                 if (card.card.isEvolution || card.card.evolutionRace != null) {
@@ -268,11 +274,13 @@ object DuelMastersEngine {
                     return reject("A normal creature cannot evolve onto another creature.")
                 }
 
-                val paid = payMana(player, card.card.cost)
+                val paid = payMana(player, card.card.cost, card.card.civilizations)
                 val remainingBattle = if (host == null) paid.battle else paid.battle - host
                 val evolved = card.copy(
-                    tapped = false,
+                    tapped = host?.tapped ?: false,
                     summoningSick = host == null && SPEED_ATTACKER !in card.card.keywords,
+                    powerModifier = host?.powerModifier ?: 0,
+                    powerModifierExpiresAtTurn = host?.powerModifierExpiresAtTurn,
                     evolvedCards = host?.let { it.evolvedCards + it.copy(evolvedCards = emptyList()) }.orEmpty()
                 )
                 success(
@@ -290,8 +298,10 @@ object DuelMastersEngine {
                 val card = player.hand.find { it.instanceId == action.handInstanceId }
                     ?: return reject("That card is not in your hand.")
                 if (card.card.kind != CardKind.SPELL) return reject("Only spells can be cast.")
-                if (player.availableMana < card.card.cost) return reject("Not enough untapped mana.")
-                val paid = payMana(player, card.card.cost)
+                if (!canPayMana(player, card.card.cost, card.card.civilizations)) {
+                    return reject("Not enough untapped mana of the required civilizations.")
+                }
+                val paid = payMana(player, card.card.cost, card.card.civilizations)
                 val base = state.replace(paid.copy(hand = paid.hand - card, graveyard = paid.graveyard + card))
                 val steps = card.card.effects.map { ResolutionStep.ResolveEffect(player.id, it) }
                 success(processResolution(base.addLog("${card.card.name} cast."), steps))
@@ -492,7 +502,10 @@ object DuelMastersEngine {
             EffectKind.ADD_TOP_CARD_TO_MANA -> repeat(effect.amount.coerceAtLeast(1)) {
                 val current = state.players[ownerId]
                 current.deck.firstOrNull()?.let { top ->
-                    state = state.replace(current.copy(deck = current.deck.drop(1), mana = current.mana + top))
+                    state = state.replace(current.copy(
+                        deck = current.deck.drop(1),
+                        mana = current.mana + top.copy(tapped = top.card.civilizations.size > 1)
+                    ))
                 }
             }
             EffectKind.BOOST_FRIENDLY_CREATURES -> {
@@ -583,15 +596,66 @@ object DuelMastersEngine {
     private fun canAttack(card: CardInstance): Boolean =
         !card.tapped && (!card.summoningSick || SPEED_ATTACKER in card.card.keywords)
 
-    private fun payMana(player: PlayerState, cost: Int): PlayerState {
-        var remaining = cost.coerceAtLeast(0)
-        val mana = player.mana.map { card ->
-            if (!card.tapped && remaining > 0) {
-                remaining--
-                card.copy(tapped = true)
-            } else card
+    /**
+     * Paper Duel Masters requires a distinct mana card for every civilization
+     * printed on the card being played. A multicolored source can satisfy only
+     * one of those requirements, and a five-civilization source has mana value 0.
+     */
+    fun canPayMana(player: PlayerState, cost: Int, civilizations: Set<String>): Boolean =
+        manaPaymentSelection(player, cost, civilizations) != null
+
+    private fun manaPaymentSelection(
+        player: PlayerState,
+        cost: Int,
+        civilizations: Set<String>
+    ): List<CardInstance>? {
+        val requiredNumericValue = cost.coerceAtLeast(0)
+        val available = player.mana.filterNot { it.tapped }
+        val required = civilizations.sortedWith(
+            compareBy<String> { civilization ->
+                available.count { source ->
+                    source.card.civilizations.any { it.equals(civilization, ignoreCase = true) }
+                }
+            }.thenBy { it }
+        )
+        val chosen = mutableListOf<CardInstance>()
+        val used = mutableSetOf<String>()
+
+        fun assignCivilizations(index: Int): Boolean {
+            if (index == required.size) return true
+            val civilization = required[index]
+            for (source in available) {
+                if (source.instanceId in used) continue
+                if (source.card.civilizations.none { it.equals(civilization, ignoreCase = true) }) continue
+                used += source.instanceId
+                chosen += source
+                if (assignCivilizations(index + 1)) return true
+                chosen.removeAt(chosen.lastIndex)
+                used -= source.instanceId
+            }
+            return false
         }
-        return player.copy(mana = mana)
+
+        if (!assignCivilizations(0)) return null
+
+        var paidValue = chosen.sumOf { it.card.manaValue }
+        for (source in available) {
+            if (paidValue >= requiredNumericValue) break
+            if (source.instanceId in used || source.card.manaValue <= 0) continue
+            used += source.instanceId
+            chosen += source
+            paidValue += source.card.manaValue
+        }
+        return chosen.takeIf { paidValue >= requiredNumericValue }
+    }
+
+    private fun payMana(player: PlayerState, cost: Int, civilizations: Set<String>): PlayerState {
+        val selectedIds = requireNotNull(manaPaymentSelection(player, cost, civilizations)) {
+            "Mana payment was not legal."
+        }.mapTo(mutableSetOf()) { it.instanceId }
+        return player.copy(mana = player.mana.map { card ->
+            if (card.instanceId in selectedIds) card.copy(tapped = true) else card
+        })
     }
 
     private fun GameState.replace(player: PlayerState): GameState =

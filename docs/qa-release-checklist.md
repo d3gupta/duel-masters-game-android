@@ -17,7 +17,8 @@
 
 - [ ] Deck size minimum is 40, with no maximum.
 - [ ] Four-copy limit is enforced by card name across printings.
-- [ ] Mana charging, payment, untapping and turn progression.
+- [ ] Mana charging, multicolored mana entering tapped, per-civilization payment, and turn progression.
+- [ ] Five-civilization mana has zero numeric value and can satisfy only one civilization requirement per tapped card.
 - [ ] Opening hands, shields, draw and deck-out.
 - [ ] Summoning sickness, Speed Attacker and evolution race matching.
 - [ ] Evolution stack destruction and bounce behavior.

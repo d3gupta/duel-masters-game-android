@@ -19,7 +19,10 @@ object DuelMastersAi {
         if (!state.manaChargedThisTurn) {
             me.hand.forEach { legal += GameAction.ChargeMana(it.instanceId) }
         }
-        me.hand.filter { it.card.kind == CardKind.CREATURE && it.card.cost <= me.availableMana }.forEach { card ->
+        me.hand.filter {
+            it.card.kind == CardKind.CREATURE &&
+                DuelMastersEngine.canPayMana(me, it.card.cost, it.card.civilizations)
+        }.forEach { card ->
             if (card.card.isEvolution || card.card.evolutionRace != null) {
                 val race = card.card.evolutionRace
                 if (race != null) me.battle.filter { host ->
@@ -29,8 +32,10 @@ object DuelMastersAi {
                 legal += GameAction.Summon(card.instanceId)
             }
         }
-        me.hand.filter { it.card.kind == CardKind.SPELL && it.card.cost <= me.availableMana }
-            .forEach { legal += GameAction.CastSpell(it.instanceId) }
+        me.hand.filter {
+            it.card.kind == CardKind.SPELL &&
+                DuelMastersEngine.canPayMana(me, it.card.cost, it.card.civilizations)
+        }.forEach { card -> legal += GameAction.CastSpell(card.instanceId) }
 
         me.battle.filter { !it.tapped && (!it.summoningSick || "SPEED_ATTACKER" in it.card.keywords) }.forEach { attacker ->
             legal += GameAction.AttackShield(attacker.instanceId)
