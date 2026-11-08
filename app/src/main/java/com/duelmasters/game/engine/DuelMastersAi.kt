@@ -57,7 +57,6 @@ object DuelMastersAi {
             60 + (target.currentPower - attacker.currentPower).coerceAtMost(0) / 100 +
                 if ("SLAYER" in attacker.card.keywords) 15 else 0
         }
-        is GameAction.Block -> 0
         GameAction.EndTurn -> 0
     }
 }
