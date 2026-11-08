@@ -139,15 +139,18 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
+                        enabled = state.activePlayer == me.id,
                         onClick = {
-                            if (mode == MatchMode.LOCAL) {
-                                showPrivateHand = !showPrivateHand
-                                message = "Pass the device to ${if (showPrivateHand) "Player 2" else "Player 1"}."
-                            } else {
-                                applyAction(GameAction.EndTurn, state) { game = it; message = "Turn ended." }
-                            }
+                            val result = DuelMastersEngine.apply(state, GameAction.EndTurn)
+                            if (result is ActionResult.Success) {
+                                game = result.state
+                                if (mode == MatchMode.LOCAL) {
+                                    showPrivateHand = !showPrivateHand
+                                    message = "Pass the device to ${if (showPrivateHand) "Player 2" else "Player 1"}."
+                                } else message = "Turn ended."
+                            } else if (result is ActionResult.Rejected) message = result.reason
                         }
-                    ) { Text(if (mode == MatchMode.LOCAL) "Pass device" else "End turn") }
+                    ) { Text(if (mode == MatchMode.LOCAL) "End turn & pass device" else "End turn") }
                     OutlinedButton(onClick = { game = null; showPrivateHand = false }) { Text("Quit") }
                 }
                 if (state.activePlayer == me.id) {
