@@ -39,6 +39,9 @@ abstract class DuelMastersDatabase : RoomDatabase() {
                         effectDefinitionIdsJson TEXT NOT NULL,
                         sourceName TEXT NOT NULL,
                         sourceUrl TEXT NOT NULL,
+                        sourceRecordId TEXT NOT NULL,
+                        language TEXT NOT NULL,
+                        verifiedAt TEXT,
                         releaseClass TEXT NOT NULL
                     )
                 """.trimIndent())
@@ -53,6 +56,7 @@ abstract class DuelMastersDatabase : RoomDatabase() {
                         releaseClass TEXT NOT NULL,
                         imageAssetKey TEXT,
                         sourceUrl TEXT,
+                        sourceRecordId TEXT NOT NULL,
                         PRIMARY KEY(cardId, setCode, collectorNumber),
                         FOREIGN KEY(cardId) REFERENCES cards(cardId) ON UPDATE NO ACTION ON DELETE CASCADE
                     )
