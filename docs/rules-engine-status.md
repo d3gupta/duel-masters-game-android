@@ -73,3 +73,6 @@ rules interpreter.
 
 Do not describe this implementation as having complete coverage for all cards
 through DM-35. Only cards marked SUPPORTED are deck eligible.
+
+
+For the parser's exact supported effect patterns, common unsupported wording families and the SQL query that produces the current per-card catalogue-only list, see [card rules support](card-rules-support.md). The end-user workflow is documented in the [player guide](user-guide.md) and [gameplay flow](gameplay-flow.md).
