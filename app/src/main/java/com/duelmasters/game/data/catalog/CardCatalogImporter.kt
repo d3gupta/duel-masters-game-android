@@ -13,7 +13,7 @@ import org.json.JSONArray
 import java.io.File
 import java.io.FileOutputStream
 
-private const val CATALOG_VERSION = 3
+private const val CATALOG_VERSION = 4
 private const val SOURCE_REPOSITORY = "https://github.com/bmenneni/SimpleJavaDmdb"
 private const val SOURCE_DATABASE_SHA = "2f109745d05d194ca9ec76c256455487dda42e02"
 
