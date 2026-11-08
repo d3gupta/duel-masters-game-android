@@ -268,6 +268,8 @@ class DuelMastersEngineTest {
         ))
         val result = DuelMastersEngine.apply(state, GameAction.CastSpell("boost-spell")) as ActionResult.Success
         assertEquals(3000, result.state.players[0].battle.single().currentPower)
+        val ended = (DuelMastersEngine.apply(result.state, GameAction.EndTurn) as ActionResult.Success).state
+        assertEquals(1000, ended.players[0].battle.single().currentPower)
     }
 
 }
