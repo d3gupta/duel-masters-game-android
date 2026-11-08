@@ -91,7 +91,10 @@ object CardTextParser {
         val match = Regex(
             "evolution\\s*[-:—]?\\s*(?:put (?:this creature )?on )?(?:one of your|a) ([a-z][a-z -]*?) creatures?"
         ).find(normalize(rulesText)) ?: return null
-        return match.groupValues[1].trim().replace(Regex("\\s+"), " ").takeIf(String::isNotBlank)
+        return match.groupValues[1].trim().replace(Regex("\\s+"), " ")
+            .split(' ')
+            .joinToString(" ") { word -> word.replaceFirstChar { it.uppercase() } }
+            .takeIf(String::isNotBlank)
     }
 
     fun supportStatus(
