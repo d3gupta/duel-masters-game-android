@@ -155,6 +155,7 @@ object DuelMastersEngine {
                     } else {
                         var next = state.replace(player.copy(battle = player.battle.map { if (it.instanceId == attacker.instanceId) it.copy(tapped = true) else it }))
                         repeat(breakerCount) {
+                            if (next.winner != null) return@repeat
                             val defending = next.players[opponent.id]
                             val shield = defending.shields.first()
                             next = next.replace(defending.copy(shields = defending.shields.drop(1)))
