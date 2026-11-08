@@ -205,7 +205,7 @@ class CardCatalogImporter(
     }
 
     private fun releaseClassForSet(setCode: String, sourceId: Int?): String {
-        if (setCode == "PROMO" || sourceId in 9001..9080) return "PROMOTIONAL"
+        if (setCode == "PROMO" || sourceId != null && sourceId in 9001..9080) return "PROMOTIONAL"
         val number = Regex("DM-(\\d+)").find(setCode)?.groupValues?.get(1)?.toIntOrNull()
         return when {
             number == null -> "UNVERIFIED"
