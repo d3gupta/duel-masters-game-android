@@ -1,7 +1,6 @@
 package com.duelmasters.game.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -49,6 +48,7 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
         database.cardDao().search("", "", "", null, "", "", "", 500, 0)
     }.collectAsState(initial = emptyList())
     val playableCards = remember(catalog) { catalog.mapNotNull { it.toGameCard() } }
+    val starterDeck = remember(playableCards) { playableCards.distinctBy { it.name.trim().lowercase() }.take(40) }
     var mode by remember { mutableStateOf(MatchMode.AI) }
     var game by remember { mutableStateOf<GameState?>(null) }
     var message by remember { mutableStateOf("Choose a mode and start a match.") }
@@ -83,17 +83,17 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
                 if (mode == MatchMode.LOCAL) Button(onClick = { mode = MatchMode.LOCAL }) { Text("Local 2 Player") }
                 else OutlinedButton(onClick = { mode = MatchMode.LOCAL }) { Text("Local 2 Player") }
             }
-            Text("Playable cards found: ${playableCards.size}")
-            Text("A match needs at least 40 cards. This screen currently builds a temporary test deck from the catalogue; saved deck selection is the next integration step.")
+            Text("Playable card definitions: ${playableCards.size} • Unique-name starter cards: ${starterDeck.size}")
+            Text("The match screen currently uses a temporary 40-card starter deck drawn from the offline catalogue. Saved deck selection and editing are being added next.")
             Button(
                 onClick = {
-                    if (playableCards.size >= 40) {
-                        val deck = playableCards.take(40)
+                    if (starterDeck.size >= 40) {
+                        val deck = starterDeck
                         game = DuelMastersEngine.newGame(deck, deck, "Player 1", if (mode == MatchMode.AI) "AI" else "Player 2")
                         message = "Match started."
                     } else message = "The imported catalogue does not currently contain 40 playable creature/spell definitions."
                 },
-                enabled = playableCards.size >= 40
+                enabled = starterDeck.size >= 40
             ) { Text("Start match") }
             Text(message, style = MaterialTheme.typography.bodySmall)
         } else {
@@ -157,9 +157,16 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
                     Text("Ready creatures can attack shields:", style = MaterialTheme.typography.labelMedium)
                     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         me.battle.filter { !it.tapped && (!it.summoningSick || "SPEED_ATTACKER" in it.card.keywords) }.forEach { creature ->
-                            OutlinedButton(onClick = {
-                                applyAction(GameAction.AttackShield(creature.instanceId), state) { game = it; message = "Shield attacked." }
-                            }) { Text("Attack: ${creature.card.name}") }
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                OutlinedButton(onClick = {
+                                    applyAction(GameAction.AttackShield(creature.instanceId), state) { game = it; message = "Shield attacked." }
+                                }) { Text("Shield: ${creature.card.name}") }
+                                rival.battle.filter { it.tapped }.forEach { target ->
+                                    OutlinedButton(onClick = {
+                                        applyAction(GameAction.AttackCreature(creature.instanceId, target.instanceId), state) { game = it; message = "Creature battle resolved." }
+                                    }) { Text("Attack ${target.card.name}") }
+                                }
+                            }
                         }
                     }
                 }
