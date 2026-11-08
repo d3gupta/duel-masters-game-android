@@ -195,7 +195,8 @@ object DuelMastersEngine {
     private fun resolveEffects(initial: GameState, ownerId: Int, effects: List<CardEffect>): GameState {
         var state = initial
         effects.forEach { effect ->
-            repeat(effect.amount.coerceAtLeast(1)) {
+            val repetitions = if (effect.kind == EffectKind.BOOST_FRIENDLY_CREATURES) 1 else effect.amount.coerceAtLeast(1)
+            repeat(repetitions) {
                 if (state.winner != null) return state
                 val owner = state.players[ownerId]
                 val opponent = state.players[1 - ownerId]
