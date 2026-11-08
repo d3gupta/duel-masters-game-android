@@ -68,6 +68,7 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
     var game by remember { mutableStateOf<GameState?>(null) }
     var message by remember { mutableStateOf("Choose a mode and start a match.") }
     var showPrivateHand by remember { mutableStateOf(false) }
+    var waitingForReveal by remember { mutableStateOf(false) }
 
     LaunchedEffect(game?.activePlayer, game?.turn, mode) {
         val initial = game
@@ -128,7 +129,18 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
             Text("Turn ${state.turn} • ${if (state.activePlayer == 0) "Player 1" else if (mode == MatchMode.AI) "AI" else "Player 2"}")
             if (state.winner != null) {
                 Text("${state.players[state.winner!!].name} wins!", style = MaterialTheme.typography.headlineSmall)
-                Button(onClick = { game = null; showPrivateHand = false }) { Text("New match") }
+                Button(onClick = { game = null; showPrivateHand = false; waitingForReveal = false }) { Text("New match") }
+            } else if (mode == MatchMode.LOCAL && waitingForReveal) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                ) {
+                    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("Pass the device", style = MaterialTheme.typography.headlineSmall)
+                        Text("Give the device to ${me.name}. The next player's hand stays hidden until they confirm.")
+                        Button(onClick = { waitingForReveal = false }) { Text("Reveal hand") }
+                    }
+                }
             } else {
                 ZoneSummary("Opponent: ${rival.name}", rival.deck.size, rival.shields.size, rival.mana.size, rival.battle.size)
                 Text("Opponent battle zone", style = MaterialTheme.typography.labelLarge)
@@ -171,12 +183,13 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
                                 game = result.state
                                 if (mode == MatchMode.LOCAL) {
                                     showPrivateHand = !showPrivateHand
+                                    waitingForReveal = true
                                     message = "Pass the device to ${if (showPrivateHand) "Player 2" else "Player 1"}."
                                 } else message = "Turn ended."
                             } else if (result is ActionResult.Rejected) message = result.reason
                         }
                     ) { Text(if (mode == MatchMode.LOCAL) "End turn & pass device" else "End turn") }
-                    OutlinedButton(onClick = { game = null; showPrivateHand = false }) { Text("Quit") }
+                    OutlinedButton(onClick = { game = null; showPrivateHand = false; waitingForReveal = false }) { Text("Quit") }
                 }
                 if (state.activePlayer == me.id) {
                     Text("Ready creatures can attack shields:", style = MaterialTheme.typography.labelMedium)
