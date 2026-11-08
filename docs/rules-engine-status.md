@@ -25,7 +25,8 @@ represented.
 - Blocker interception, including prevention of a direct-attack win.
 - Slayer combat, Power Attacker +2000, Double Breaker, and Triple Breaker.
 - Shield Trigger creatures enter the battle zone for free; Shield Trigger spells
-  resolve their supported effects without paying mana.
+  resolve their supported effects without paying mana. Catalogue mechanics and rules
+  text both contribute to Shield Trigger detection.
 - A conservative rules-text parser maps recognized catalogue text to keywords
   and supported effect definitions.
 - Supported spell effects: draw cards, destroy or return the opponent's weakest
@@ -42,8 +43,9 @@ represented.
   Many unique card effects, target choices, conditional clauses, evolution
   requirements, civilization-specific costs, and continuous/triggered effects
   still need explicit implementations.
-- Shield Trigger resolution currently uses the engine's default automatic
-  resolution; there is no player prompt to choose optional trigger effects.
+- Shield Trigger resolution currently uses automatic resolution; there is no player
+  prompt to choose optional trigger effects. Temporary power effects created by a
+  Shield Trigger persist through the recipient's turn and expire at its end.
 - Blockers automatically intercept using the first available blocker rather
   than prompting the defender to choose among multiple blockers.
 - The UI battlefield is a functional card-panel layout, not final card-art

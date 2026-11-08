@@ -9,7 +9,7 @@ object DuelMastersAi {
         val me = state.players[state.activePlayer]
         val enemy = state.players[1 - state.activePlayer]
         val legal = buildList<GameAction> {
-            if (!state.manaChargedThisTurn && me.hand.isNotEmpty() && me.mana.size < 10) {
+            if (!state.manaChargedThisTurn && me.hand.isNotEmpty()) {
                 add(GameAction.ChargeMana(me.hand.first().instanceId))
             }
             me.hand.filter { it.card.kind == CardKind.CREATURE && it.card.cost <= me.availableMana }

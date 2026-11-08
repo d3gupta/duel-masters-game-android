@@ -16,7 +16,7 @@ An offline-first Duel Masters card game for Android. The Android client is desig
 - Initial battlefield screen for AI and local pass-and-play, using catalogue-derived cards.
 - Offline deck builder with minimum-40/no-maximum validation, four-copy-per-name enforcement, and Room saving; saved decks can be selected for matches.
 - Basic deck validation: minimum 40 cards, no maximum size, and at most four copies per card name.
-- First platform-independent rules-engine slice: game setup, zones, mana charging, summoning, summoning sickness, basic combat and shield breaking.
+- Platform-independent rules-engine slice: game setup, zones, mana charging, summoning, summoning sickness, blockers, slayer combat, breaker abilities and supported Shield Trigger effects.
 - Baseline AI action policy using the same game-action model.
 - Card and printing records retain set, collector number, rarity and official/community/promotional provenance.
 - Card metadata is not yet equivalent to rules-engine support: imported cards are marked `METADATA_ONLY` until their effects are implemented and verified.
@@ -54,10 +54,10 @@ duel-masters-game-android/
 - [x] Add Room card, printing, collection and catalogue-metadata tables.
 - [x] Add searchable offline card browser.
 - [x] Add the initial rules-engine slice and unit tests; full classic rules coverage remains in progress.
-- [ ] Add deck editing/deletion, collection-aware building and advanced format restrictions.
-- [ ] Expand baseline AI into Easy / Normal / Hard difficulty levels.
+- [x] Add deck editing and deletion. Collection-aware building and advanced format restrictions remain future work.
+- [x] Add Easy / Normal / Hard heuristic AI difficulty levels.
 - [x] Add initial local two-player pass-and-play handoff UI; private-hand polish and complete rules are still in progress.
-- [ ] Add card effect coverage and mark verified mechanics accurately.
+- [ ] Expand card effect coverage and mark verified mechanics accurately; this is not yet a complete classic-rules implementation.
 
 ## License
 

@@ -272,4 +272,28 @@ class DuelMastersEngineTest {
         assertEquals(1000, ended.players[0].battle.single().currentPower)
     }
 
+    @Test fun temporaryBoostGrantedDuringOpponentTurnSurvivesUntilOwnersTurnEnds() {
+        val attacker = CardInstance("attacker", GameCard("a", "Attacker", CardKind.CREATURE, 1), summoningSick = false)
+        val triggerSpell = GameCard("trigger-boost", "Shield Boost", CardKind.SPELL, 5, shieldTrigger = true,
+            effects = listOf(CardEffect(EffectKind.BOOST_FRIENDLY_CREATURES, 2000)))
+        val friendly = CardInstance("friendly", GameCard("friendly-card", "Friendly", CardKind.CREATURE, 1, 1000), summoningSick = false)
+        val drawCard = CardInstance("draw", GameCard("draw-card", "Draw", CardKind.CREATURE, 1))
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
+            PlayerState(1, "P2", listOf(drawCard), battle = listOf(friendly),
+                shields = listOf(CardInstance("trigger-shield", triggerSpell)))
+        ))
+        val afterShield = (DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success).state
+        assertEquals(3000, afterShield.players[1].battle.single().currentPower)
+        val ownersTurn = (DuelMastersEngine.apply(afterShield, GameAction.EndTurn) as ActionResult.Success).state
+        assertEquals(3000, ownersTurn.players[1].battle.single().currentPower)
+        val afterOwnersTurn = (DuelMastersEngine.apply(ownersTurn, GameAction.EndTurn) as ActionResult.Success).state
+        assertEquals(1000, afterOwnersTurn.players[1].battle.single().currentPower)
+    }
+
+    @Test fun shieldTriggerKeywordFromCatalogueMechanicsIsHonoured() {
+        val keywords = CardTextParser.keywords("", setOf("Shield Trigger"))
+        assertTrue("SHIELD_TRIGGER" in keywords)
+    }
+
 }

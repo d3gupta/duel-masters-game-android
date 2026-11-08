@@ -113,7 +113,7 @@ object DuelMastersEngine {
                     players = state.players.map { p -> if (p.id == player.id) p.copy(battle = p.battle.map { it.copy(summoningSick = false, powerModifier = 0) }) else p },
                     activePlayer = nextId, turn = state.turn + 1, firstTurn = false, manaChargedThisTurn = false
                 )
-                next = next.copy(players = next.players.map { p -> if (p.id == nextId) p.copy(mana = p.mana.map { it.copy(tapped = false) }, battle = p.battle.map { it.copy(tapped = false, summoningSick = false, powerModifier = 0) }) else p })
+                next = next.copy(players = next.players.map { p -> if (p.id == nextId) p.copy(mana = p.mana.map { it.copy(tapped = false) }, battle = p.battle.map { it.copy(tapped = false, summoningSick = false) }) else p })
                 next = draw(next, nextId)
                 success(next.addLog("${opponent.name}'s turn begins."))
             }
@@ -153,11 +153,13 @@ object DuelMastersEngine {
                         success(state.replace(player.copy(battle = player.battle.map { if (it.instanceId == attacker.instanceId) it.copy(tapped = true) else it })).copy(winner = player.id).addLog("${attacker.card.name} attacked directly. ${player.name} wins!"))
                     } else {
                         var next = state.replace(player.copy(battle = player.battle.map { if (it.instanceId == attacker.instanceId) it.copy(tapped = true) else it }))
-                        repeat(breakerCount) {
-                            if (next.winner != null) return@repeat
+                        var brokenCount = 0
+                        for (index in 0 until breakerCount) {
+                            if (next.winner != null) break
                             val defending = next.players[opponent.id]
-                            val shield = defending.shields.first()
+                            val shield = defending.shields.firstOrNull() ?: break
                             next = next.replace(defending.copy(shields = defending.shields.drop(1)))
+                            brokenCount++
                             if (shield.card.shieldTrigger) {
                                 next = resolveShieldTrigger(next, opponent.id, shield)
                             } else {
@@ -165,7 +167,7 @@ object DuelMastersEngine {
                                 next = next.replace(after.copy(hand = after.hand + shield))
                             }
                         }
-                        success(next.addLog("${attacker.card.name} broke $breakerCount shield(s)."))
+                        success(next.addLog("${attacker.card.name} broke $brokenCount shield(s)."))
                     }
                 }
             }

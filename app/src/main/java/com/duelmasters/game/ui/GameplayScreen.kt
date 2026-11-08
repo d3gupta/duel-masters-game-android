@@ -78,17 +78,26 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
     var waitingForReveal by remember { mutableStateOf(false) }
 
     LaunchedEffect(game?.activePlayer, game?.turn, mode, aiDifficulty) {
-        val initial = game
-        if (initial != null && mode == MatchMode.AI && initial.activePlayer == 1 && initial.winner == null) {
-            var current = initial
+        val initial = game ?: return@LaunchedEffect
+        if (mode == MatchMode.AI && initial.activePlayer == 1 && initial.winner == null) {
+            var current: GameState = initial
             repeat(100) {
                 if (current.activePlayer != 1 || current.winner != null) return@LaunchedEffect
                 val action = DuelMastersAi.chooseAction(current, aiDifficulty)
-                val result = DuelMastersEngine.apply(current, action)
-                if (result is ActionResult.Success) current = result.state
+                when (val result = DuelMastersEngine.apply(current, action)) {
+                    is ActionResult.Success -> current = result.state
+                    is ActionResult.Rejected -> {
+                        current = current.copy(log = (current.log + "AI action rejected: ${result.reason}").takeLast(80))
+                        game = current
+                        return@LaunchedEffect
+                    }
+                }
                 game = current
                 if (action == GameAction.EndTurn) return@LaunchedEffect
                 delay(300)
+            }
+            if (current.activePlayer == 1 && current.winner == null) {
+                message = "AI action limit reached; end the turn manually to continue."
             }
         }
     }
@@ -320,7 +329,7 @@ internal fun CardEntity.toGameCard(): GameCard? {
         power = powerValue,
         civilizations = civilizations,
         keywords = keywordSet,
-        shieldTrigger = rulesText.contains("shield trigger", ignoreCase = true),
+        shieldTrigger = "SHIELD_TRIGGER" in keywordSet,
         effects = CardTextParser.effects(rulesText)
     )
 }
