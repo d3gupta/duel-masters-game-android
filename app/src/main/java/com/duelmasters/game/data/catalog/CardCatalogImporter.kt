@@ -27,6 +27,7 @@ private data class ImportedCard(
     val rulesText: String,
     val mechanics: List<String>,
     val releaseClass: String,
+    val sourceRecordId: String,
     val printings: MutableList<CardPrintingEntity>
 )
 
@@ -63,6 +64,9 @@ class CardCatalogImporter(
                 effectDefinitionIdsJson = "[]",
                 sourceName = "SimpleJavaDmdb",
                 sourceUrl = SOURCE_REPOSITORY,
+                sourceRecordId = card.sourceRecordId,
+                language = "en",
+                verifiedAt = null,
                 releaseClass = card.releaseClass
             )
         }
@@ -167,6 +171,7 @@ class CardCatalogImporter(
                             rulesText = rulesText,
                             mechanics = mechanics,
                             releaseClass = releaseClass,
+                            sourceRecordId = sourceId,
                             printings = mutableListOf()
                         )
                     }
@@ -179,7 +184,8 @@ class CardCatalogImporter(
                         illustrator = null,
                         releaseClass = releaseClass,
                         imageAssetKey = null,
-                        sourceUrl = SOURCE_REPOSITORY
+                        sourceUrl = SOURCE_REPOSITORY,
+                        sourceRecordId = sourceId
                     )
                 }
             }
