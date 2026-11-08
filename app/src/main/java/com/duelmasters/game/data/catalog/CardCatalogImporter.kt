@@ -15,7 +15,6 @@ import java.io.FileOutputStream
 
 private const val CATALOG_VERSION = 4
 private const val SOURCE_REPOSITORY = "https://github.com/bmenneni/SimpleJavaDmdb"
-private const val SOURCE_DATABASE_SHA = "2f109745d05d194ca9ec76c256455487dda42e02"
 
 /** Imports the bundled English SQLite catalogue into Room. All work is offline. */
 class CardCatalogImporter(
@@ -28,7 +27,7 @@ class CardCatalogImporter(
             return ImportResult(existing.cardCount, existing.printingCount, imported = false)
         }
 
-        val sourceFile = unpackSourceDatabase(force)
+        val sourceFile = unpackSourceDatabase()
         val importedCards = readSourceCards(sourceFile)
         require(importedCards.isNotEmpty()) { "The bundled card database contains no importable cards." }
 
@@ -74,9 +73,8 @@ class CardCatalogImporter(
         return ImportResult(cardRows.size, printingRows.size, imported = true)
     }
 
-    private fun unpackSourceDatabase(force: Boolean): File {
+    private fun unpackSourceDatabase(): File {
         val destination = File(context.filesDir, "duelmasters-source.db")
-        if (destination.exists() && destination.length() > 0L && !force) return destination
 
         val encoded = context.assets.open("cards/duelmasters-source.db.base64")
             .bufferedReader()
