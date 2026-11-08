@@ -423,7 +423,7 @@ class DuelMastersEngineTest {
     }
 
     @Test fun parserPreservesEverySupportedEffectInPrintedOrder() {
-        val text = "Draw 1 card. Destroy one of your opponent's creatures. Tap one of your opponent's creatures. Draw 2 cards."
+        val text = "Draw 1 card.\nDestroy one of your opponent's creatures;\nTap one of your opponent's creatures.\nDraw 2 cards."
         assertEquals("SUPPORTED", CardTextParser.supportStatus("SPELL", text))
         assertEquals(
             listOf(
