@@ -408,4 +408,66 @@ class DuelMastersEngineTest {
     }
 
 
+    @Test fun parserOnlyMarksFullyRecognizedRulesTextAsPlayable() {
+        assertEquals("SUPPORTED", CardTextParser.supportStatus("SPELL", "Destroy target creature."))
+        assertEquals("SUPPORTED", CardTextParser.supportStatus("CREATURE", "This creature has Blocker."))
+        assertEquals("METADATA_ONLY", CardTextParser.supportStatus(
+            "SPELL", "Search your deck for a creature and put it into your hand."
+        ))
+        assertEquals("METADATA_ONLY", CardTextParser.supportStatus("CROSS_GEAR", ""))
+    }
+
+    @Test fun parserReadsEvolutionRaceAndPowerAttackerBonus() {
+        assertEquals(
+            "Beast Folk",
+            CardTextParser.evolutionRace("Evolution—Put on one of your Beast Folk creatures.")
+        )
+        assertEquals(3000, CardTextParser.powerAttackBonus("Power Attacker +3,000"))
+    }
+
+    @Test fun shieldTriggerResolutionContinuesRemainingDoubleBreakerShieldSteps() {
+        val attacker = CardInstance(
+            "attacker",
+            GameCard("attacker-card", "Double Breaker", CardKind.CREATURE, 1, 3000,
+                keywords = setOf("DOUBLE_BREAKER")),
+            summoningSick = false
+        )
+        val trigger = GameCard(
+            "trigger", "Shield Draw", CardKind.SPELL, 4, shieldTrigger = true,
+            effects = listOf(CardEffect(EffectKind.DRAW_CARDS))
+        )
+        val normalShield = CardInstance("normal", GameCard("normal", "Normal Shield", CardKind.CREATURE, 1))
+        val drawn = CardInstance("drawn", GameCard("drawn", "Drawn Card", CardKind.CREATURE, 1))
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
+            PlayerState(1, "P2", listOf(drawn), shields = listOf(CardInstance("trigger-shield", trigger), normalShield))
+        ))
+        val declared = (DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success).state
+        assertTrue(declared.pendingChoice is PendingChoice.ShieldTrigger)
+        val resolved = (DuelMastersEngine.apply(declared, GameAction.ResolveShieldTrigger(true)) as ActionResult.Success).state
+        assertTrue(resolved.pendingChoice == null)
+        assertEquals(0, resolved.players[1].shields.size)
+        assertEquals("Drawn Card", resolved.players[1].hand.first().card.name)
+        assertEquals("Normal Shield", resolved.players[1].hand.last().card.name)
+    }
+
+    @Test fun tappedTargetEffectOnlyOffersUntappedCreatures() {
+        val spell = CardInstance("spell", GameCard("spell-card", "Tap", CardKind.SPELL, 1,
+            effects = listOf(CardEffect(EffectKind.TAP_TARGET_OPPONENT))))
+        val mana = CardInstance("mana", GameCard("mana-card", "Mana", CardKind.CREATURE, 1))
+        val alreadyTapped = CardInstance("tapped", GameCard("tapped-card", "Tapped", CardKind.CREATURE, 1), tapped = true)
+        val ready = CardInstance("ready", GameCard("ready-card", "Ready", CardKind.CREATURE, 1))
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), hand = listOf(spell), mana = listOf(mana)),
+            PlayerState(1, "P2", emptyList(), battle = listOf(alreadyTapped, ready))
+        ))
+        val cast = (DuelMastersEngine.apply(state, GameAction.CastSpell("spell")) as ActionResult.Success).state
+        val choice = cast.pendingChoice as PendingChoice.EffectTarget
+        assertEquals(listOf("ready"), choice.targetInstanceIds)
+        val resolved = (DuelMastersEngine.apply(cast, GameAction.ChooseEffectTarget("ready")) as ActionResult.Success).state
+        assertTrue(resolved.players[1].battle.first { it.instanceId == "ready" }.tapped)
+        assertTrue(resolved.players[1].battle.first { it.instanceId == "tapped" }.tapped)
+    }
+
+
 }

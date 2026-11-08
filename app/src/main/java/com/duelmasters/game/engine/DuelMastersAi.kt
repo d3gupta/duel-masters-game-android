@@ -67,18 +67,18 @@ object DuelMastersAi {
                     val selected = when (difficulty) {
                         AiDifficulty.EASY -> blockers.random(random)
                         AiDifficulty.NORMAL -> blockers.maxByOrNull { blocker ->
-                            val canKill = effectivePower(blocker) >= attacker.currentPower
+                            val canKill = blocker.currentPower >= attacker.currentPower
                             (if (canKill) 100 else 0) + blocker.currentPower / 100
-                        }?.takeIf { effectivePower(it) >= attacker.currentPower }
+                        }?.takeIf { it.currentPower >= attacker.currentPower }
                         AiDifficulty.HARD -> blockers.maxByOrNull { blocker ->
-                            val attackerDies = effectivePower(blocker) >= attacker.currentPower ||
+                            val attackerDies = blocker.currentPower >= attacker.currentPower ||
                                 "SLAYER" in blocker.card.keywords
                             val blockerDies = effectivePower(attacker) >= blocker.currentPower ||
                                 "SLAYER" in attacker.card.keywords
                             (if (attackerDies) 1000 else 0) - (if (blockerDies) 300 else 0) +
                                 blocker.currentPower / 100
                         }?.takeIf {
-                            effectivePower(it) >= attacker.currentPower || "SLAYER" in it.card.keywords
+                            it.currentPower >= attacker.currentPower || "SLAYER" in it.card.keywords
                         }
                     }
                     GameAction.ChooseBlocker(selected?.instanceId)
