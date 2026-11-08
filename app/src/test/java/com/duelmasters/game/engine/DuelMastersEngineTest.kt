@@ -28,6 +28,16 @@ class DuelMastersEngineTest {
         assertEquals(1, next.mana.size)
     }
 
+    @Test fun onlyOneManaCardCanBeChargedPerTurn() {
+        val game = DuelMastersEngine.newGame(deck("a"), deck("b"))
+        val first = game.players[0].hand[0]
+        val second = game.players[0].hand[1]
+        val charged = DuelMastersEngine.apply(game, GameAction.ChargeMana(first.instanceId)) as ActionResult.Success
+        val rejected = DuelMastersEngine.apply(charged.state, GameAction.ChargeMana(second.instanceId))
+        assertTrue(rejected is ActionResult.Rejected)
+        assertEquals(1, charged.state.players[0].mana.size)
+    }
+
     @Test fun cannotSummonWithoutEnoughMana() {
         val game = DuelMastersEngine.newGame(deck("a"), deck("b"))
         val result = DuelMastersEngine.apply(game, GameAction.Summon(game.players[0].hand.first().instanceId))
