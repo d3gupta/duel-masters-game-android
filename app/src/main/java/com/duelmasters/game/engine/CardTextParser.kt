@@ -30,58 +30,71 @@ object CardTextParser {
         }
     }
 
-    fun effects(rulesText: String): List<CardEffect> {
-        val text = normalize(rulesText)
-        val result = mutableListOf<CardEffect>()
+    fun effects(rulesText: String): List<CardEffect> =
+        rulesClauses(rulesText).mapNotNull(::effectForClause)
 
-        // Optional "up to N" draws require a player choice and are intentionally
-        // not coerced to a fixed draw count.
-        val draw = Regex("draw (\\d+) cards?").find(text)?.groupValues?.get(1)?.toIntOrNull()
-            ?: if (Regex("draw (?:a|one) card").containsMatchIn(text)) 1 else 0
-        if (draw > 0) result += CardEffect(EffectKind.DRAW_CARDS, draw)
-
-        when {
-            Regex("destroy (?:the )?(?:opponent's|your opponent's) weakest creature").containsMatchIn(text) ->
-                result += CardEffect(EffectKind.DESTROY_WEAKEST_OPPONENT)
-            Regex("destroy (?:one of your opponent's|an opponent's) creatures?").containsMatchIn(text) ->
-                result += CardEffect(EffectKind.DESTROY_TARGET_OPPONENT)
-            Regex("return (?:the )?(?:opponent's|your opponent's) weakest creature to (?:its|their) hand").containsMatchIn(text) ->
-                result += CardEffect(EffectKind.RETURN_WEAKEST_OPPONENT)
-            Regex("return (?:one of your opponent's|an opponent's) creatures? to (?:its|their) hand").containsMatchIn(text) ->
-                result += CardEffect(EffectKind.RETURN_TARGET_OPPONENT)
-            Regex("tap (?:one of your opponent's|an opponent's) creatures?").containsMatchIn(text) ->
-                result += CardEffect(EffectKind.TAP_TARGET_OPPONENT)
+    /**
+     * Parse one fully supported effect clause. Keeping clause order and duplicates is
+     * important: the engine resolves the returned list as an ordered decision queue.
+     */
+    private fun effectForClause(clause: String): CardEffect? {
+        Regex("draw (\\d+) cards?").matchEntire(clause)?.let { match ->
+            return match.groupValues[1].toIntOrNull()?.takeIf { it > 0 }
+                ?.let { CardEffect(EffectKind.DRAW_CARDS, it) }
         }
-
-        if (Regex("put the top card of your deck into your mana(?: zone)?").containsMatchIn(text) ||
-            Regex("add the top card of your deck to your mana").containsMatchIn(text)) {
-            result += CardEffect(EffectKind.ADD_TOP_CARD_TO_MANA)
+        if (Regex("draw (?:a|one) card").matches(clause)) {
+            return CardEffect(EffectKind.DRAW_CARDS, 1)
         }
-        if (Regex("put the top card of your deck into your hand").containsMatchIn(text) ||
-            Regex("add the top card of your deck to your hand").containsMatchIn(text)) {
-            result += CardEffect(EffectKind.ADD_TOP_CARD_TO_HAND)
+        if (Regex("destroy (?:the )?(?:opponent's|your opponent's) weakest creature").matches(clause)) {
+            return CardEffect(EffectKind.DESTROY_WEAKEST_OPPONENT)
         }
-        if (Regex("put the top card of your deck into your shield zone").containsMatchIn(text) ||
-            Regex("add the top card of your deck to your shields").containsMatchIn(text)) {
-            result += CardEffect(EffectKind.ADD_TOP_CARD_TO_SHIELD)
+        if (Regex("destroy (?:one of your opponent's|an opponent's) creatures?").matches(clause)) {
+            return CardEffect(EffectKind.DESTROY_TARGET_OPPONENT)
         }
-        if (Regex("untap all of your creatures").containsMatchIn(text)) {
-            result += CardEffect(EffectKind.UNTAP_FRIENDLY_CREATURES)
+        if (Regex("return (?:the )?(?:opponent's|your opponent's) weakest creature to (?:its|their) hand").matches(clause)) {
+            return CardEffect(EffectKind.RETURN_WEAKEST_OPPONENT)
+        }
+        if (Regex("return (?:one of your opponent's|an opponent's) creatures? to (?:its|their) hand").matches(clause)) {
+            return CardEffect(EffectKind.RETURN_TARGET_OPPONENT)
+        }
+        if (Regex("tap (?:one of your opponent's|an opponent's) creatures?").matches(clause)) {
+            return CardEffect(EffectKind.TAP_TARGET_OPPONENT)
+        }
+        if (Regex("put the top card of your deck into your mana(?: zone)?").matches(clause) ||
+            Regex("add the top card of your deck to your mana").matches(clause)) {
+            return CardEffect(EffectKind.ADD_TOP_CARD_TO_MANA)
+        }
+        if (Regex("put the top card of your deck into your hand").matches(clause) ||
+            Regex("add the top card of your deck to your hand").matches(clause)) {
+            return CardEffect(EffectKind.ADD_TOP_CARD_TO_HAND)
+        }
+        if (Regex("put the top card of your deck into your shield zone").matches(clause) ||
+            Regex("add the top card of your deck to your shields").matches(clause)) {
+            return CardEffect(EffectKind.ADD_TOP_CARD_TO_SHIELD)
+        }
+        if (Regex("untap all of your creatures").matches(clause)) {
+            return CardEffect(EffectKind.UNTAP_FRIENDLY_CREATURES)
         }
 
         val boost = Regex(
             "(?:all of )?your creatures? (?:get|gets) \\+([0-9,]+) power until the end of the turn"
-        ).find(text)?.groupValues?.get(1)?.replace(",", "")?.toIntOrNull()
-        if (boost != null) result += CardEffect(EffectKind.BOOST_FRIENDLY_CREATURES, boost)
+        ).matchEntire(clause)?.groupValues?.get(1)?.replace(",", "")?.toIntOrNull()
+        if (boost != null) return CardEffect(EffectKind.BOOST_FRIENDLY_CREATURES, boost)
 
         val threshold = Regex(
             "destroy all (?:of )?your opponent's creatures? with (?:a )?power of? ([0-9,]+) or less"
-        ).find(text)?.groupValues?.get(1)?.replace(",", "")?.toIntOrNull()
+        ).matchEntire(clause)?.groupValues?.get(1)?.replace(",", "")?.toIntOrNull()
         if (threshold != null) {
-            result += CardEffect(EffectKind.DESTROY_OPPONENT_CREATURES_POWER_OR_LESS, threshold)
+            return CardEffect(EffectKind.DESTROY_OPPONENT_CREATURES_POWER_OR_LESS, threshold)
         }
-        return result.distinct()
+        return null
     }
+
+    private fun rulesClauses(rulesText: String): List<String> =
+        normalize(rulesText)
+            .split(Regex("[.;\\n]+"))
+            .map { it.trim().trim(',', ':', '—', '-') }
+            .filter(String::isNotBlank)
 
     fun powerAttackBonus(rulesText: String): Int =
         Regex("(?:power attacker|gets?)\\s*\\+\\s*([0-9,]+)(?:\\s*power)?")
@@ -129,9 +142,7 @@ object CardTextParser {
         val hasEvolutionClause = text.split(Regex("[.;\\n]+")).any { it.trim().startsWith("evolution") }
         if (hasEvolutionClause && cardType != "EVOLUTION_CREATURE") return "METADATA_ONLY"
         if (text.isBlank()) return "SUPPORTED"
-        val clauses = text.split(Regex("[.;\\n]+"))
-            .map { it.trim().trim(',', ':', '—', '-') }
-            .filter(String::isNotBlank)
+        val clauses = rulesClauses(rulesText)
         return if (clauses.all { isSupportedClause(it, catalogMechanics) }) "SUPPORTED" else "METADATA_ONLY"
     }
 
@@ -169,7 +180,8 @@ object CardTextParser {
     private fun normalize(value: String): String = value.lowercase()
         .replace('’', '\'')
         .replace('–', '-')
-        .replace(Regex("\\s+"), " ")
+        .replace(Regex("[\\t\\x0B\\f\\r ]+"), " ")
+        .replace(Regex(" *\\n+ *"), "\n")
         .trim()
 
     private fun normalizeKeyword(value: String): String =

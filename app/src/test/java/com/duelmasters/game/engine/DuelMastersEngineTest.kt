@@ -422,6 +422,20 @@ class DuelMastersEngineTest {
         assertEquals("METADATA_ONLY", CardTextParser.supportStatus("CROSS_GEAR", ""))
     }
 
+    @Test fun parserPreservesEverySupportedEffectInPrintedOrder() {
+        val text = "Draw 1 card. Destroy one of your opponent's creatures. Tap one of your opponent's creatures. Draw 2 cards."
+        assertEquals("SUPPORTED", CardTextParser.supportStatus("SPELL", text))
+        assertEquals(
+            listOf(
+                CardEffect(EffectKind.DRAW_CARDS, 1),
+                CardEffect(EffectKind.DESTROY_TARGET_OPPONENT),
+                CardEffect(EffectKind.TAP_TARGET_OPPONENT),
+                CardEffect(EffectKind.DRAW_CARDS, 2)
+            ),
+            CardTextParser.effects(text)
+        )
+    }
+
     @Test fun parserDoesNotMarkUnresolvedCreatureEffectsOrWrongCardTypesPlayable() {
         assertEquals(
             "METADATA_ONLY",
@@ -756,5 +770,44 @@ class DuelMastersEngineTest {
         }
     }
 
+
+
+    @Test fun multipleTargetEffectsResolveInSequenceWithoutDroppingLaterClauses() {
+        val spell = CardInstance(
+            "spell",
+            GameCard(
+                "spell-card", "Destroy and Tap", CardKind.SPELL, 1,
+                effects = listOf(
+                    CardEffect(EffectKind.DESTROY_TARGET_OPPONENT),
+                    CardEffect(EffectKind.TAP_TARGET_OPPONENT)
+                )
+            )
+        )
+        val mana = CardInstance("mana", GameCard("mana-card", "Mana", CardKind.CREATURE, 1))
+        val first = CardInstance("first", GameCard("first-card", "First", CardKind.CREATURE, 1, 1000))
+        val second = CardInstance("second", GameCard("second-card", "Second", CardKind.CREATURE, 1, 2000))
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), hand = listOf(spell), mana = listOf(mana)),
+            PlayerState(1, "P2", emptyList(), battle = listOf(first, second))
+        ))
+
+        val cast = (DuelMastersEngine.apply(state, GameAction.CastSpell("spell")) as ActionResult.Success).state
+        val destroyChoice = cast.pendingChoice as PendingChoice.EffectTarget
+        assertEquals(EffectKind.DESTROY_TARGET_OPPONENT, destroyChoice.effect.kind)
+
+        val afterDestroy = (DuelMastersEngine.apply(
+            cast, GameAction.ChooseEffectTarget("first")
+        ) as ActionResult.Success).state
+        val tapChoice = afterDestroy.pendingChoice as PendingChoice.EffectTarget
+        assertEquals(EffectKind.TAP_TARGET_OPPONENT, tapChoice.effect.kind)
+        assertEquals(listOf("second"), tapChoice.targetInstanceIds)
+
+        val resolved = (DuelMastersEngine.apply(
+            afterDestroy, GameAction.ChooseEffectTarget("second")
+        ) as ActionResult.Success).state
+        assertTrue(resolved.pendingChoice == null)
+        assertTrue(resolved.players[1].battle.none { it.instanceId == "first" })
+        assertTrue(resolved.players[1].battle.single { it.instanceId == "second" }.tapped)
+    }
 
 }
