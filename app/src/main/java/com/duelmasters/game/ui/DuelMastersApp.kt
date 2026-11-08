@@ -15,6 +15,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -29,8 +32,23 @@ import com.duelmasters.game.data.local.DuelMastersDatabaseProvider
 
 @Composable
 fun DuelMastersApp() {
+    val context = LocalContext.current
+    val database = remember(context) { DuelMastersDatabaseProvider.get(context) }
+    var selectedTab by rememberSaveable { mutableStateOf("Cards") }
     Scaffold { innerPadding ->
-        CardCatalogueScreen(modifier = Modifier.padding(innerPadding))
+        Column(Modifier.padding(innerPadding).fillMaxSize()) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (selectedTab == "Cards") androidx.compose.material3.Button(onClick = { selectedTab = "Cards" }) { Text("Card catalogue") }
+                else androidx.compose.material3.OutlinedButton(onClick = { selectedTab = "Cards" }) { Text("Card catalogue") }
+                if (selectedTab == "Play") androidx.compose.material3.Button(onClick = { selectedTab = "Play" }) { Text("Play") }
+                else androidx.compose.material3.OutlinedButton(onClick = { selectedTab = "Play" }) { Text("Play") }
+            }
+            if (selectedTab == "Cards") CardCatalogueScreen(modifier = Modifier.weight(1f))
+            else GameplayScreen(database = database, modifier = Modifier.weight(1f))
+        }
     }
 }
 
