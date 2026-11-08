@@ -1,55 +1,73 @@
 # Offline rules engine and gameplay UI
 
-The Android app contains a platform-independent Kotlin rules core in
-`com.duelmasters.game.engine`. Human and AI actions are submitted to
-`DuelMastersEngine.apply`; rejected actions leave the immutable source state
-unchanged.
+The Android client is offline-only. The pure Kotlin rules engine is shared by human
+players and AI; actions are validated by the same immutable state machine.
 
-## Deck construction rules
+## Deck construction
 
-- Minimum deck size: 40 cards.
-- No maximum deck size.
-- Maximum four copies of a card name, regardless of distinct catalogue record IDs.
-- The deck builder and match setup both use `DeckValidator`.
+- Minimum 40 cards; there is no maximum deck size.
+- Maximum four copies of a card name, even across separate catalogue IDs/printings.
+- Match setup and deck editing apply the same validator.
+- The default starter deck contains up to ten supported names, four copies each;
+  it is enabled only when the catalogue has enough supported entries.
 
-Card-specific banned, restricted, and format-dependent exceptions are not yet
-represented.
+## Implemented engine mechanics
 
-## Implemented rules slice
+- Five opening cards and five shields per player; turn draw, deck-out loss, one mana
+  charge per turn, mana payment, untap and turn progression.
+- Summoning sickness, Speed Attacker, evolution onto a matching race, and stacked
+  evolution cards moving together when destroyed or returned.
+- Attacks to shields and tapped creatures; direct victory after shields are gone.
+- Defender-selected Blocker interception; Unblockable bypasses Blockers.
+- Slayer combat, Power Attacker bonuses, Double Breaker and Triple Breaker.
+- Defender can use a Shield Trigger for free or add that shield to hand. A trigger
+  spell's supported effects resolve before the rest of a multi-shield attack.
+- Targeted destroy/return/tap effects pause for target selection. Supported weakest
+  creature effects, draw, add-top-card-to-mana/hand/shield, untap, temporary power
+  boosts, and power-threshold mass destruction.
+- Temporary power modifiers expire at the end of the affected owner's next turn,
+  including when created by a Shield Trigger during the opponent's turn.
+- AI Easy / Normal / Hard action policies and AI decisions for Blockers, Shield
+  Triggers, and effect targets.
+- Local two-player pass-and-play pauses for private hand and defender-choice
+  handoffs. Opponent hands and shield identities remain hidden.
+- Battlefield includes mana and battle zones, tapped-state animation, and
+  evolution-stack indicators.
 
-- Five opening cards and five shields per player.
-- Deck, hand, mana, battle, shield, and graveyard zones.
-- One mana charge per turn, untap, draw, creature summoning and mana payment.
-- Summoning sickness and Speed Attacker.
-- Attacks against shields and tapped creatures.
-- Blocker interception, including prevention of a direct-attack win.
-- Slayer combat, Power Attacker +2000, Double Breaker, and Triple Breaker.
-- Shield Trigger creatures enter the battle zone for free; Shield Trigger spells
-  resolve their supported effects without paying mana. Catalogue mechanics and rules
-  text both contribute to Shield Trigger detection.
-- A conservative rules-text parser maps recognized catalogue text to keywords
-  and supported effect definitions.
-- Supported spell effects: draw cards, destroy or return the opponent's weakest
-  creature, add the top card of the deck to mana, and boost friendly creatures.
-- Easy, Normal, and Hard AI action policies submit actions through the same engine.
-- Compose battlefield cards display cost, power, abilities and tapped state;
-  tapping animates the card's rotation.
-- Local two-player pass-and-play includes a hand-reveal transition.
-- Deck builder supports creation, editing/renaming, deletion, and saved-deck use.
+## Catalogue and playability contract
 
-## Still incomplete / not yet verified as rules-complete
+The app imports the bundled English card source into Room offline. Card records and
+printings remain searchable even when their effects are not implemented. The importer
+uses a conservative rules-text classifier:
 
-- The parser intentionally recognizes only a subset of English card text.
-  Many unique card effects, target choices, conditional clauses, evolution
-  requirements, civilization-specific costs, and continuous/triggered effects
-  still need explicit implementations.
-- Shield Trigger resolution currently uses automatic resolution; there is no player
-  prompt to choose optional trigger effects. Temporary power effects created by a
-  Shield Trigger persist through the recipient's turn and expire at its end.
-- Blockers automatically intercept using the first available blocker rather
-  than prompting the defender to choose among multiple blockers.
-- The UI battlefield is a functional card-panel layout, not final card-art
-  rendering. The imported catalogue does not bundle card artwork.
-- No full card-by-card rules coverage or on-device gameplay verification has
-  been completed. Run the Android build and unit-test workflow before treating
-  this branch as a verified release.
+- SUPPORTED: all recognized clauses fit the engine's implemented mechanics; the
+  card can be used in decks.
+- METADATA_ONLY: the rules text includes an unsupported clause, the card type is
+  outside the implemented slice, or an evolution requirement cannot be parsed.
+  The card remains visible in the catalogue but is excluded from deck construction
+  and match setup.
+
+This is intentionally conservative. A false-negative makes a card browse-only; a
+false-positive could misplay the card. The parser is not a general Duel Masters
+rules interpreter.
+
+## Known limitations before a full classic-rules release
+
+- Many unique card effects, when/whenever triggers, replacement effects,
+  civilization-specific costs, race-specific effects beyond parsed evolution,
+  attack restrictions, continuous abilities, and complicated conditional clauses
+  are not implemented. The corresponding cards remain browse-only when detected.
+- Temporary power boosts apply to creatures already on the battlefield when the
+  effect resolves; later creatures entering that turn do not automatically inherit
+  the boost.
+- Evolution stack handling covers normal battle removal and return-to-hand effects;
+  uncommon effects that move only part of an evolution stack are not modeled.
+- Format-specific banned/restricted lists and separate rule-set profiles are absent.
+- The bundled source does not include card artwork. The UI uses information panels
+  rather than official card images.
+- JVM tests and the emulator database-import test are automated. Physical-device
+  usability, long-duration match stability, accessibility review, and release-key
+  signing still require owner-side validation.
+
+Do not describe this implementation as having complete coverage for all cards
+through DM-35. Only cards marked SUPPORTED are deck eligible.

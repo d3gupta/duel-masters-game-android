@@ -13,15 +13,21 @@ An offline-first Duel Masters card game for Android. The Android client is desig
 - Room database with a versioned migration that preserves saved decks.
 - Bundled English Duel Masters SQLite card source, imported locally into Room.
 - Searchable card browser with name and rules-text search.
-- Initial battlefield screen for AI and local pass-and-play, using catalogue-derived cards.
+- Offline AI and local pass-and-play battlefield with private-hand transitions, blocker choices, Shield Trigger choices, target selection and evolution plays.
 - Offline deck builder with minimum-40/no-maximum validation, four-copy-per-name enforcement, and Room saving; saved decks can be selected for matches.
 - Basic deck validation: minimum 40 cards, no maximum size, and at most four copies per card name.
 - Platform-independent rules-engine slice: game setup, zones, mana charging, summoning, summoning sickness, blockers, slayer combat, breaker abilities and supported Shield Trigger effects.
-- Baseline AI action policy using the same game-action model.
+- Easy / Normal / Hard AI policies, including defender and effect-target decisions, all enforced by the same rules engine.
 - Card and printing records retain set, collector number, rarity and official/community/promotional provenance.
-- Card metadata is not yet equivalent to rules-engine support: imported cards are marked `METADATA_ONLY` until their effects are implemented and verified.
+- Card metadata is not treated as rules support: only definitions classified SUPPORTED are deck-eligible. Other catalogue entries remain searchable as browse-only cards.
 
 The bundled source describes 2,600+ English card entries through DM-35 and English promotional entries. The importer groups repeated printings into card definitions. Artwork and video assets are not bundled.
+
+## Release build
+
+The optimized Android release variant is built with R8 and resource shrinking. CI runs JVM rule tests, an Android emulator catalogue-import test, and packages the release APK. See [release and signing instructions](docs/release.md).
+
+A production-signed APK requires a release keystore. When no signing values are configured, CI deliberately emits an unsigned release APK rather than signing with a debug key. This is an offline playable rules slice, not a claim that every card through DM-35 has complete effect support.
 
 ## Stack
 
@@ -56,8 +62,9 @@ duel-masters-game-android/
 - [x] Add the initial rules-engine slice and unit tests; full classic rules coverage remains in progress.
 - [x] Add deck editing and deletion. Collection-aware building and advanced format restrictions remain future work.
 - [x] Add Easy / Normal / Hard heuristic AI difficulty levels.
-- [x] Add initial local two-player pass-and-play handoff UI; private-hand polish and complete rules are still in progress.
-- [ ] Expand card effect coverage and mark verified mechanics accurately; this is not yet a complete classic-rules implementation.
+- [x] Add local two-player pass-and-play with private-hand transitions and turn/decision handoffs.
+- [x] Add interactive blocker, Shield Trigger and target choices; implement the supported evolution stack and mark unimplemented card text as browse-only.
+- [ ] Continue expanding per-card rules coverage and test full match sequences; the complete DM-35 rules set is not yet implemented.
 
 ## License
 
