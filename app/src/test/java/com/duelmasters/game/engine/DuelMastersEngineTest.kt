@@ -186,4 +186,25 @@ class DuelMastersEngineTest {
         assertEquals(1, result.state.players[1].battle.size)
     }
 
+    @Test fun supportedCardTextKeywordsAreRecognized() {
+        val keywords = CardTextParser.keywords("This creature has Blocker, Slayer, Double Breaker and Speed Attacker.")
+        assertTrue(keywords.containsAll(setOf("BLOCKER", "SLAYER", "DOUBLE_BREAKER", "SPEED_ATTACKER")))
+    }
+
+    @Test fun spellEffectDestroysWeakestOpponentCreature() {
+        val spell = GameCard("spell", "Creature Removal", CardKind.SPELL, 1,
+            effects = listOf(CardEffect(EffectKind.DESTROY_WEAKEST_OPPONENT)))
+        val spellInstance = CardInstance("spell-instance", spell)
+        val mana = CardInstance("mana", GameCard("mana-card", "Mana", CardKind.CREATURE, 1))
+        val target = CardInstance("target", GameCard("target-card", "Target", CardKind.CREATURE, 1, 1000))
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), hand = listOf(spellInstance), mana = listOf(mana)),
+            PlayerState(1, "P2", emptyList(), battle = listOf(target))
+        ))
+        val result = DuelMastersEngine.apply(state, GameAction.CastSpell("spell-instance")) as ActionResult.Success
+        assertTrue(result.state.players[1].battle.isEmpty())
+        assertEquals(1, result.state.players[1].graveyard.size)
+        assertEquals(1, result.state.players[0].graveyard.size)
+    }
+
 }
