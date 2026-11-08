@@ -41,6 +41,9 @@ production release.
 
 ## Release checklist
 
+Use the maintained [QA and release sign-off checklist](qa-release-checklist.md) for the complete automated, gameplay, device and distribution gate.
+
+
 - [ ] Configure the production keystore in local environment or GitHub Actions secrets.
 - [ ] Confirm the CI run passed debug build, optimized release build, JVM tests and
       emulator catalogue-import test.
