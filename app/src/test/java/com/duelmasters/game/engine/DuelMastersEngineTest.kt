@@ -207,4 +207,18 @@ class DuelMastersEngineTest {
         assertEquals(1, result.state.players[0].graveyard.size)
     }
 
+    @Test fun shieldTriggerCreatureCanAttackOnItsOwnersNextTurn() {
+        val attacker = CardInstance("attacker", GameCard("a", "Attacker", CardKind.CREATURE, 1), summoningSick = false)
+        val trigger = GameCard("trigger", "Trigger Creature", CardKind.CREATURE, 7, shieldTrigger = true)
+        val drawCard = CardInstance("draw", GameCard("draw-card", "Draw", CardKind.CREATURE, 1))
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
+            PlayerState(1, "P2", listOf(drawCard), shields = listOf(CardInstance("trigger-1", trigger)))
+        ))
+        val attacked = (DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success).state
+        assertTrue(attacked.players[1].battle.single().summoningSick)
+        val nextTurn = (DuelMastersEngine.apply(attacked, GameAction.EndTurn) as ActionResult.Success).state
+        assertTrue(!nextTurn.players[1].battle.single().summoningSick)
+    }
+
 }
