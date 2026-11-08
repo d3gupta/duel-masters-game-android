@@ -270,6 +270,9 @@ private fun BattlefieldCardRow(cards: List<CardInstance>) {
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(instance.card.name, style = MaterialTheme.typography.titleSmall)
+                    if (instance.card.civilizations.isNotEmpty()) {
+                        Text(instance.card.civilizations.joinToString(" / "), style = MaterialTheme.typography.labelSmall)
+                    }
                     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text("Cost ${instance.card.cost}", style = MaterialTheme.typography.labelSmall)
                         if (instance.card.kind == CardKind.CREATURE) {
@@ -305,12 +308,17 @@ internal fun CardEntity.toGameCard(): GameCard? {
     }.getOrDefault(emptySet())
     val keywordSet = CardTextParser.keywords(rulesText, mechanics)
     val powerValue = Regex("\\d+").find(power.orEmpty())?.value?.toIntOrNull() ?: 0
+    val civilizations = runCatching {
+        val json = JSONArray(civilizationsJson)
+        (0 until json.length()).map { json.optString(it) }.toSet()
+    }.getOrDefault(emptySet())
     return GameCard(
         id = cardId,
         name = name,
         kind = kind,
         cost = cost ?: 0,
         power = powerValue,
+        civilizations = civilizations,
         keywords = keywordSet,
         shieldTrigger = rulesText.contains("shield trigger", ignoreCase = true),
         effects = CardTextParser.effects(rulesText)
