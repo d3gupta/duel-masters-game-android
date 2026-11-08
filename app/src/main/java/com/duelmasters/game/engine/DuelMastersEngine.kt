@@ -113,7 +113,7 @@ object DuelMastersEngine {
                     players = state.players.map { p -> if (p.id == player.id) p.copy(battle = p.battle.map { it.copy(summoningSick = false, powerModifier = 0) }) else p },
                     activePlayer = nextId, turn = state.turn + 1, firstTurn = false, manaChargedThisTurn = false
                 )
-                next = next.copy(players = next.players.map { p -> if (p.id == nextId) p.copy(mana = p.mana.map { it.copy(tapped = false) }, battle = p.battle.map { it.copy(tapped = false, summoningSick = false) }) else p })
+                next = next.copy(players = next.players.map { p -> if (p.id == nextId) p.copy(mana = p.mana.map { it.copy(tapped = false) }, battle = p.battle.map { it.copy(tapped = false, summoningSick = false, powerModifier = 0) }) else p })
                 next = draw(next, nextId)
                 success(next.addLog("${opponent.name}'s turn begins."))
             }
