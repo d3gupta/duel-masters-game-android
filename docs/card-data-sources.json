@@ -11,8 +11,8 @@
       "repository": "https://github.com/bmenneni/SimpleJavaDmdb",
       "website": "https://db.duelmasters.us/",
       "reportedCoverage": "2600+ English card entries through DM-35",
-      "redistributionLicenseStatus": "USER_CONFIRMED_OFFLINE_BY_PROJECT_OWNER",
-      "usage": "Bundled SQLite source used by the offline importer; redistribution permission confirmed by project owner outside this repository."
+      "redistributionLicenseStatus": "USER_CONFIRMED_AUTHORIZED",
+      "usage": "Bundled into the offline Android app as an authorized source snapshot; SQLite database is converted locally into Room rows."
     },
     {
       "name": "Latepate64/duel-masters-json",
@@ -23,10 +23,12 @@
     }
   ],
   "importedSnapshot": {
-    "source": "https://github.com/bmenneni/SimpleJavaDmdb",
+    "source": "SimpleJavaDmdb/duelmasters.db",
+    "sourceBlobSha": "2f109745d05d194ca9ec76c256455487dda42e02",
     "bundledAsset": "app/src/main/assets/cards/duelmasters-source.db.base64",
-    "upstreamReportedCoverage": "2600+ English card entries through DM-35 plus 180+ animations",
-    "importer": "CardCatalogImporter reads Card and RulesText tables; groups duplicate card definitions and retains printings",
-    "artworkAndVideosImported": false
+    "format": "SQLite encoded as base64 text for UTF-8 repository transport",
+    "coverage": "English card entries through DM-35 and English promos, as described by source maintainer",
+    "exactImportedCounts": "Computed on first app launch and stored in card_catalog_metadata",
+    "fullTargetCoverage": true
   }
 }
