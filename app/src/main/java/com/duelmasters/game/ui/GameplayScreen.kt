@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.duelmasters.game.data.local.CardEntity
 import com.duelmasters.game.data.local.DuelMastersDatabase
 import com.duelmasters.game.engine.BasicDuelMastersAi
+import com.duelmasters.game.engine.CardTextParser
 import com.duelmasters.game.engine.CardKind
 import com.duelmasters.game.engine.DuelMastersEngine
 import com.duelmasters.game.engine.GameAction
@@ -253,7 +254,7 @@ internal fun CardEntity.toGameCard(): GameCard? {
         val json = JSONArray(mechanicsJson)
         (0 until json.length()).map { json.optString(it).uppercase().replace(' ', '_') }.toSet()
     }.getOrDefault(emptySet())
-    val keywordSet = mechanics + if (rulesText.contains("speed attacker", ignoreCase = true)) setOf("SPEED_ATTACKER") else emptySet()
+    val keywordSet = CardTextParser.keywords(rulesText, mechanics)
     val powerValue = Regex("\\d+").find(power.orEmpty())?.value?.toIntOrNull() ?: 0
     return GameCard(
         id = cardId,
@@ -262,6 +263,7 @@ internal fun CardEntity.toGameCard(): GameCard? {
         cost = cost ?: 0,
         power = powerValue,
         keywords = keywordSet,
-        shieldTrigger = rulesText.contains("shield trigger", ignoreCase = true)
+        shieldTrigger = rulesText.contains("shield trigger", ignoreCase = true),
+        effects = CardTextParser.effects(rulesText)
     )
 }
