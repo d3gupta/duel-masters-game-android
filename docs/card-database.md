@@ -54,8 +54,10 @@ The source repository describes 2,600+ English card entries through DM-35 and 18
 - Preserve source text verbatim in `rulesText`; never overwrite it with a guessed interpretation.
 - Keep `mechanics` as descriptive tags for filtering and AI hints, not executable rules.
 - Keep executable effects separate in the game engine. A parser must never silently turn arbitrary card text into executable code.
-- `implementationStatus` must be one of `METADATA_ONLY`, `PARTIAL`, `IMPLEMENTED`, `RULES_VERIFIED`.
-- A card is playable only when every required effect is implemented and verified for the selected rules profile. The collection browser may still show metadata-only cards.
+- `implementationStatus` is currently either `SUPPORTED` or `METADATA_ONLY`; these are the only values written by `CardTextParser.supportStatus`.
+- `SUPPORTED` means every non-empty rules clause matched a pattern that the current engine implements. It is a conservative parser decision, not a claim of complete official-rules verification.
+- `METADATA_ONLY` means at least one clause, statistic, card type or evolution requirement is outside the implemented slice. The card remains searchable but is not deck-eligible.
+- Do not add `PARTIAL`, `IMPLEMENTED` or `RULES_VERIFIED` values until the importer, deck eligibility rules, player-facing labels and audit reports all support those distinct states.
 - Preserve provenance at card and printing level: source URL, source record ID, language, release class, verification date and notes.
 
 ## Import pipeline
