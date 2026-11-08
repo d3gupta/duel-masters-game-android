@@ -36,7 +36,7 @@ data class PlayerState(
 
 data class GameState(
     val players: List<PlayerState>,
-    val activePlayer: Int = 0,
+    val activePlayer: Int = 1,
     val turn: Int = 1,
     val phase: TurnPhase = TurnPhase.START,
     val winner: Int? = null,
@@ -135,6 +135,13 @@ object GameEngine {
             val updated = replace(replace(state, p.copy(battle = aBattle, graveyard = aGrave)), enemy.copy(battle = eBattle, graveyard = eGrave))
             return GameResult.Success(updated.logged("${attacker.card.name} battled ${actualTarget.card.name}."))
         }
+        val faceBlocker = enemy.battle.firstOrNull {
+            Ability.BLOCKER in it.card.abilities && !it.tapped &&
+                Ability.UNBLOCKABLE !in attacker.card.abilities
+        }
+        if (faceBlocker != null && enemy.shields.isNotEmpty()) {
+            return resolveBlockerBattle(state, p, enemy, attacker, faceBlocker)
+        }
         if (enemy.shields.isNotEmpty()) {
             val breaks = when {
                 Ability.TRIPLE_BREAKER in attacker.card.abilities -> 3
@@ -161,10 +168,26 @@ object GameEngine {
         return GameResult.Success(replace(state, p.copy(battle = tapped)).copy(winner = p.id, phase = TurnPhase.FINISHED).logged("Player ${p.id} attacked directly and won."))
     }
 
+    private fun resolveBlockerBattle(state: GameState, attackerPlayer: PlayerState, defenderPlayer: PlayerState, attacker: CardInstance, blocker: CardInstance): GameResult {
+        val attackPower = attacker.currentPower + if (Ability.POWER_ATTACKER_2000 in attacker.card.abilities) 2000 else 0
+        var attackingBattle = attackerPlayer.battle.map { if (it.instanceId == attacker.instanceId) it.copy(tapped = true) else it }
+        var defendingBattle = defenderPlayer.battle.map { if (it.instanceId == blocker.instanceId) it.copy(tapped = true) else it }
+        var attackingGrave = attackerPlayer.graveyard
+        var defendingGrave = defenderPlayer.graveyard
+        if (attackPower < blocker.currentPower || Ability.SLAYER in blocker.card.abilities) {
+            attackingBattle.firstOrNull { it.instanceId == attacker.instanceId }?.let { attackingBattle = attackingBattle - it; attackingGrave = attackingGrave + it }
+        }
+        if (attackPower > blocker.currentPower || Ability.SLAYER in attacker.card.abilities) {
+            defendingBattle.firstOrNull { it.instanceId == blocker.instanceId }?.let { defendingBattle = defendingBattle - it; defendingGrave = defendingGrave + it }
+        }
+        val next = replace(replace(state, attackerPlayer.copy(battle = attackingBattle, graveyard = attackingGrave)), defenderPlayer.copy(battle = defendingBattle, graveyard = defendingGrave)).logged(blocker.card.name + " blocked " + attacker.card.name + ".")
+        return GameResult.Success(next)
+    }
     private fun resolveShieldTrigger(state: GameState, ownerId: Int, shield: CardInstance): GameState {
         val owner = state.player(ownerId)
         if (shield.card.kind == CardKind.SPELL) {
-            val (updated, intermediate) = resolveEffects(state, owner, shield.card.effects, null)
+            val target = state.opponent(ownerId).battle.firstOrNull()?.instanceId
+            val (updated, intermediate) = resolveEffects(state, owner, shield.card.effects, target)
             return replace(intermediate, updated.copy(hand = updated.hand - shield, graveyard = updated.graveyard + shield))
                 .logged("Shield Trigger spell resolved for free.")
         }
