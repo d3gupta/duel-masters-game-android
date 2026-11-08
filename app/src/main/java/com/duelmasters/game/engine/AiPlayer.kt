@@ -16,6 +16,16 @@ sealed interface AiAction {
  * returned action through GameEngine so the AI follows the same rules as a human.
  */
 class AiPlayer(private val difficulty: AiDifficulty, private val random: Random = Random.Default) {
+    fun takeTurnStep(state: GameState): GameResult {
+        return when (val action = chooseAction(state)) {
+            is AiAction.ChargeMana -> GameEngine.chargeMana(state, action.cardInstanceId)
+            is AiAction.Summon -> GameEngine.summonCreature(state, action.cardInstanceId)
+            is AiAction.Cast -> GameEngine.castSpell(state, action.cardInstanceId, action.targetCreatureId)
+            is AiAction.Attack -> GameEngine.attack(state, action.attackerInstanceId, action.targetCreatureId)
+            AiAction.EndTurn -> GameResult.Success(GameEngine.endTurn(state))
+        }
+    }
+
     fun chooseAction(state: GameState): AiAction {
         val me = state.player(state.activePlayer)
         val enemy = state.opponent(me.id)
