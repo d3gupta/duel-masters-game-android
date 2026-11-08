@@ -40,7 +40,7 @@ class AiPlayer(private val difficulty: AiDifficulty, private val random: Random 
             me.battle.filter { !it.tapped && (!it.summonedThisTurn || Ability.SPEED_ATTACKER in it.card.abilities) }.forEach { creature ->
                 val canBreakShields = enemy.shields.isNotEmpty()
                 val target = if (difficulty == AiDifficulty.HARD && !canBreakShields) {
-                    enemy.battle.minByOrNull { it.currentPower }?.instanceId
+                    enemy.battle.filter { it.tapped }.minByOrNull { it.currentPower }?.instanceId
                 } else null
                 add(AiAction.Attack(creature.instanceId, target))
             }
