@@ -50,7 +50,7 @@ class GameEngineTest {
 
     @Test fun slayerDestroysAttackingCreatureEvenWhenItHasMorePower() {
         val attacker = CardInstance(card = creature("Attacker", power = 8000))
-        val slayer = CardInstance(card = creature("Slayer", setOf(Ability.SLAYER), power = 1000))
+        val slayer = CardInstance(card = creature("Slayer", setOf(Ability.SLAYER), power = 1000), tapped = true)
         val p1 = PlayerState(1, emptyList(), battle = listOf(attacker))
         val p2 = PlayerState(2, emptyList(), battle = listOf(slayer))
         val result = GameEngine.attack(GameState(listOf(p1, p2)), attacker.instanceId, slayer.instanceId) as GameResult.Success
