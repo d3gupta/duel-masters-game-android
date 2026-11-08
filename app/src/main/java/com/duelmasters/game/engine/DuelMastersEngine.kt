@@ -62,7 +62,10 @@ sealed class ActionResult {
 
 object DuelMastersEngine {
     fun newGame(first: List<GameCard>, second: List<GameCard>, firstName: String = "Player 1", secondName: String = "Player 2"): GameState {
-        require(first.size >= 40 && second.size >= 40) { "Each deck must contain at least 40 cards." }
+        val firstValidation = DeckValidator.validate(first)
+        val secondValidation = DeckValidator.validate(second)
+        require(firstValidation.isValid) { firstValidation.errors.joinToString(" ") }
+        require(secondValidation.isValid) { secondValidation.errors.joinToString(" ") }
         val p1 = makePlayer(0, firstName, first)
         val p2 = makePlayer(1, secondName, second)
         return GameState(listOf(p1, p2)).let { state ->
