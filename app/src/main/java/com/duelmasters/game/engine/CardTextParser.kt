@@ -10,6 +10,7 @@ object CardTextParser {
             if (text.contains("speed attacker")) add("SPEED_ATTACKER")
             if (text.contains("double breaker")) add("DOUBLE_BREAKER")
             if (text.contains("triple breaker")) add("TRIPLE_BREAKER")
+            if (text.contains("shield trigger")) add("SHIELD_TRIGGER")
             if (text.contains("unblockable") || text.contains("can't be blocked") || text.contains("cannot be blocked")) add("UNBLOCKABLE")
             if (Regex("power attacker\\s*\\+?\\s*2,?000").containsMatchIn(text)) add("POWER_ATTACKER_2000")
         }
