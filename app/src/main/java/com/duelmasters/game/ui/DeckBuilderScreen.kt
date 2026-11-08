@@ -33,7 +33,7 @@ import org.json.JSONArray
 @Composable
 fun DeckBuilderScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier) {
     val allCards by remember(database) {
-        database.cardDao().search("", "", "", null, "", "", "", 500, 0)
+        database.cardDao().search("", "", "", null, "", "", "", 5000, 0)
     }.collectAsState(initial = emptyList())
     val cards = remember(allCards) { allCards.mapNotNull { entity -> entity.toGameCard()?.let { entity to it } } }
     val savedDecks by database.deckDao().observeAll().collectAsState(initial = emptyList())
@@ -49,7 +49,7 @@ fun DeckBuilderScreen(database: DuelMastersDatabase, modifier: Modifier = Modifi
     val validation = DeckValidator.validate(selectedCards)
     val filtered = cards.filter { (entity, _) ->
         query.isBlank() || entity.name.contains(query, ignoreCase = true)
-    }.take(120)
+    }
 
     Column(
         modifier = modifier.fillMaxSize().padding(14.dp),
