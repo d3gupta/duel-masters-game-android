@@ -5,6 +5,7 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.util.Base64
 import androidx.room.withTransaction
+import com.duelmasters.game.engine.CardTextParser
 import com.duelmasters.game.data.local.CardCatalogMetadataEntity
 import com.duelmasters.game.data.local.CardEntity
 import com.duelmasters.game.data.local.CardPrintingEntity
@@ -13,7 +14,7 @@ import org.json.JSONArray
 import java.io.File
 import java.io.FileOutputStream
 
-private const val CATALOG_VERSION = 4
+private const val CATALOG_VERSION = 5
 private const val SOURCE_REPOSITORY = "https://github.com/bmenneni/SimpleJavaDmdb"
 
 /** Imports the bundled English SQLite catalogue into Room. All work is offline. */
@@ -43,7 +44,7 @@ class CardCatalogImporter(
                 rulesText = card.rulesText,
                 flavorText = null,
                 mechanicsJson = JSONArray(card.mechanics).toString(),
-                implementationStatus = "METADATA_ONLY",
+                implementationStatus = CardTextParser.supportStatus(card.type, card.rulesText, card.mechanics.toSet()),
                 effectDefinitionIdsJson = "[]",
                 sourceName = "SimpleJavaDmdb",
                 sourceUrl = SOURCE_REPOSITORY,
