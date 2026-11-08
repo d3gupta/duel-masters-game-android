@@ -117,4 +117,73 @@ class DuelMastersEngineTest {
         DuelMastersEngine.apply(game, GameAction.Summon(game.players[0].hand.first().instanceId))
         assertEquals(before, game.players[0])
     }
+    @Test fun doubleBreakerBreaksTwoShields() {
+        val breaker = GameCard("breaker", "Breaker", CardKind.CREATURE, 1, 3000, keywords = setOf("DOUBLE_BREAKER"))
+        val attacker = CardInstance("attacker", breaker, summoningSick = false)
+        val shields = listOf(
+            CardInstance("s1", GameCard("s1", "Shield 1", CardKind.CREATURE, 1)),
+            CardInstance("s2", GameCard("s2", "Shield 2", CardKind.CREATURE, 1))
+        )
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
+            PlayerState(1, "P2", emptyList(), shields = shields)
+        ))
+        val result = DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success
+        assertEquals(0, result.state.players[1].shields.size)
+        assertEquals(2, result.state.players[1].hand.size)
+    }
+
+    @Test fun shieldTriggerCreatureIsSummonedWithoutPayingMana() {
+        val attacker = CardInstance("attacker", GameCard("a", "Attacker", CardKind.CREATURE, 1), summoningSick = false)
+        val trigger = GameCard("trigger", "Trigger Creature", CardKind.CREATURE, 7, shieldTrigger = true)
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
+            PlayerState(1, "P2", emptyList(), shields = listOf(CardInstance("trigger-1", trigger)))
+        ))
+        val result = DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success
+        assertEquals(1, result.state.players[1].battle.size)
+        assertTrue(result.state.players[1].hand.isEmpty())
+        assertEquals(0, result.state.players[1].mana.size)
+    }
+
+    @Test fun shieldTriggerSpellResolvesItsDrawEffect() {
+        val attacker = CardInstance("attacker", GameCard("a", "Attacker", CardKind.CREATURE, 1), summoningSick = false)
+        val trigger = GameCard("trigger", "Trigger Spell", CardKind.SPELL, 5, shieldTrigger = true,
+            effects = listOf(CardEffect(EffectKind.DRAW_CARDS)))
+        val drawn = CardInstance("drawn", GameCard("drawn", "Drawn Card", CardKind.CREATURE, 1))
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
+            PlayerState(1, "P2", listOf(drawn), shields = listOf(CardInstance("trigger-1", trigger)))
+        ))
+        val result = DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success
+        assertEquals("Drawn Card", result.state.players[1].hand.single().card.name)
+        assertEquals("Trigger Spell", result.state.players[1].graveyard.single().card.name)
+    }
+
+    @Test fun blockerInterceptsShieldAttack() {
+        val attacker = CardInstance("attacker", GameCard("a", "Attacker", CardKind.CREATURE, 1, 1000), summoningSick = false)
+        val blocker = CardInstance("blocker", GameCard("b", "Blocker", CardKind.CREATURE, 1, 3000, keywords = setOf("BLOCKER")))
+        val shield = CardInstance("shield", GameCard("s", "Shield", CardKind.CREATURE, 1))
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
+            PlayerState(1, "P2", emptyList(), shields = listOf(shield), battle = listOf(blocker))
+        ))
+        val result = DuelMastersEngine.apply(state, GameAction.AttackShield("attacker")) as ActionResult.Success
+        assertEquals(1, result.state.players[1].shields.size)
+        assertTrue(result.state.players[0].battle.isEmpty())
+    }
+
+    @Test fun slayerDestroysAttackerEvenWhenSlayerHasLowerPower() {
+        val attacker = CardInstance("attacker", GameCard("a", "Attacker", CardKind.CREATURE, 1, 8000), summoningSick = false)
+        val slayer = CardInstance("slayer", GameCard("s", "Slayer", CardKind.CREATURE, 1, 1000, keywords = setOf("SLAYER")), tapped = true)
+        val state = GameState(listOf(
+            PlayerState(0, "P1", emptyList(), battle = listOf(attacker)),
+            PlayerState(1, "P2", emptyList(), battle = listOf(slayer))
+        ))
+        val result = DuelMastersEngine.apply(state, GameAction.AttackCreature("attacker", "slayer")) as ActionResult.Success
+        assertTrue(result.state.players[0].battle.isEmpty())
+        assertEquals(1, result.state.players[0].graveyard.size)
+        assertEquals(1, result.state.players[1].battle.size)
+    }
+
 }
