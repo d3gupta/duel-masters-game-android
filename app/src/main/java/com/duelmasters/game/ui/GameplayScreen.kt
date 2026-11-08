@@ -81,7 +81,7 @@ fun GameplayScreen(database: DuelMastersDatabase, modifier: Modifier = Modifier)
         val initial = game
         if (initial != null && mode == MatchMode.AI && initial.activePlayer == 1 && initial.winner == null) {
             var current = initial
-            repeat(30) {
+            repeat(100) {
                 if (current.activePlayer != 1 || current.winner != null) return@LaunchedEffect
                 val action = DuelMastersAi.chooseAction(current, aiDifficulty)
                 val result = DuelMastersEngine.apply(current, action)
