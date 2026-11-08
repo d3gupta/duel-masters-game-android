@@ -62,7 +62,8 @@ docs/     Architecture, player guide, rules coverage, data and release documenta
 | [Rules-engine status](docs/rules-engine-status.md) | Implemented mechanics and known limitations |
 | [Card rules support](docs/card-rules-support.md) | Parser coverage, unsupported patterns and SQL inventory query |
 | [Card database](docs/card-database.md) | Catalogue structure and provenance |
-| [Release](docs/release.md) | Build, signing and CI instructions |\n| [QA sign-off](docs/qa-release-checklist.md) | Automated, gameplay, device and distribution release gates |
+| [Release](docs/release.md) | Build, signing and CI instructions |
+| [QA sign-off](docs/qa-release-checklist.md) | Automated, gameplay, device and distribution release gates |
 
 ## Important release caveat
 
