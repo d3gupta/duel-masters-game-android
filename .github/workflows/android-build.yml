@@ -81,7 +81,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           script: |
-            set -euo pipefail
+            set -eu
             gradle --no-daemon :app:connectedDebugAndroidTest
             mkdir -p app/build/reports/card-audit
             adb exec-out run-as com.duelmasters.game.debug cat files/card-rules-support-report.csv > app/build/reports/card-audit/card-rules-support-report.csv
