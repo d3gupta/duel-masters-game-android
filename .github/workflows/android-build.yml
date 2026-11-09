@@ -49,6 +49,21 @@ jobs:
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -n 1)"
           "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" "platform-tools" "emulator" "system-images;android-36;google_apis;x86_64"
 
+      - name: Enable KVM access for Android emulator
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          if [[ -e /dev/kvm ]]; then
+            sudo chmod 666 /dev/kvm
+          fi
+          if [[ -r /dev/kvm && -w /dev/kvm ]]; then
+            echo "KVM acceleration is available."
+          else
+            echo "KVM is unavailable on this runner; the emulator will use software acceleration."
+          fi
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -75,21 +90,117 @@ jobs:
         run: gradle --no-daemon :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest
 
       - name: Run on-device catalogue import test and export rules audit
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 36
-          arch: x86_64
-          disable-animations: true
-          script: |
-            set -eu
-            gradle --no-daemon :app:connectedDebugAndroidTest
-            mkdir -p app/build/reports/card-audit
-            adb exec-out run-as com.duelmasters.game.debug cat files/card-rules-support-report.csv > app/build/reports/card-audit/card-rules-support-report.csv
-            adb exec-out run-as com.duelmasters.game.debug cat files/card-rules-support-full-report.csv > app/build/reports/card-audit/card-rules-support-full-report.csv
-            adb exec-out run-as com.duelmasters.game.debug cat files/card-rules-support-summary.txt > app/build/reports/card-audit/card-rules-support-summary.txt
-            test -s app/build/reports/card-audit/card-rules-support-report.csv
-            test -s app/build/reports/card-audit/card-rules-support-full-report.csv
-            test -s app/build/reports/card-audit/card-rules-support-summary.txt
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          AVD_NAME="duel-masters-ci"
+          DEVICE="emulator-5554"
+          AVD_MANAGER="$(find "$ANDROID_HOME/cmdline-tools" -name avdmanager -type f | head -n 1)"
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          EMULATOR="$ANDROID_HOME/emulator/emulator"
+          EMULATOR_LOG="app/build/reports/android-emulator/emulator.log"
+
+          test -x "$AVD_MANAGER"
+          test -x "$ADB"
+          test -x "$EMULATOR"
+          mkdir -p "$ANDROID_HOME/.android" "$HOME/.android/avd" "$(dirname "$EMULATOR_LOG")"
+          export ANDROID_AVD_HOME="$HOME/.android/avd"
+
+          printf 'no\n' | "$AVD_MANAGER" create avd --force -n "$AVD_NAME" --package 'system-images;android-36;google_apis;x86_64'
+          cat >> "$ANDROID_AVD_HOME/$AVD_NAME.avd/config.ini" <<'EOF'
+          hw.cpu.ncore=2
+          hw.keyboard=yes
+          EOF
+
+          EMULATOR_ARGS=(-no-window -gpu swiftshader_indirect -no-snapshot -no-snapshot-save -noaudio -no-boot-anim -camera-back none)
+          if [[ ! -r /dev/kvm || ! -w /dev/kvm ]]; then
+            echo "Starting emulator without KVM acceleration."
+            EMULATOR_ARGS+=(-accel off)
+          else
+            echo "Starting emulator with KVM acceleration."
+          fi
+
+          "$EMULATOR" -port 5554 -avd "$AVD_NAME" "${EMULATOR_ARGS[@]}" > "$EMULATOR_LOG" 2>&1 &
+          EMULATOR_PID=$!
+
+          cleanup_emulator() {
+            local exit_code=$?
+            if [[ "$exit_code" -ne 0 ]]; then
+              echo "--- Android emulator log (last 160 lines) ---"
+              tail -n 160 "$EMULATOR_LOG" || true
+            fi
+            "$ADB" -s "$DEVICE" emu kill >/dev/null 2>&1 || true
+            wait "$EMULATOR_PID" 2>/dev/null || true
+            return "$exit_code"
+          }
+          trap cleanup_emulator EXIT
+
+          echo "Waiting for Android system boot..."
+          booted=false
+          for attempt in $(seq 1 600); do
+            if ! kill -0 "$EMULATOR_PID" 2>/dev/null; then
+              echo "Android emulator process exited before boot completed."
+              exit 1
+            fi
+            boot_state=$("$ADB" -s "$DEVICE" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)
+            if [[ "$boot_state" == "1" ]]; then
+              booted=true
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$booted" != true ]]; then
+            echo "Timed out waiting for Android system boot."
+            exit 1
+          fi
+
+          echo "Android system boot completed; waiting for framework services..."
+          input_ready=false
+          for attempt in $(seq 1 180); do
+            input_service=$("$ADB" -s "$DEVICE" shell service check input 2>/dev/null | tr -d '\r' || true)
+            if [[ "$input_service" == *"Service input: found"* ]]; then
+              input_ready=true
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$input_ready" != true ]]; then
+            echo "Timed out waiting for Android InputManager service."
+            "$ADB" -s "$DEVICE" shell service check input || true
+            exit 1
+          fi
+
+          settings_ready=false
+          for attempt in $(seq 1 60); do
+            animation_scale=$("$ADB" -s "$DEVICE" shell settings get global window_animation_scale 2>/dev/null | tr -d '\r' || true)
+            if [[ "$animation_scale" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+              settings_ready=true
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$settings_ready" != true ]]; then
+            echo "Timed out waiting for Android settings provider."
+            exit 1
+          fi
+
+          echo "Android input and settings services are ready."
+          "$ADB" -s "$DEVICE" shell input keyevent 82
+          "$ADB" -s "$DEVICE" shell settings put global window_animation_scale 0.0
+          "$ADB" -s "$DEVICE" shell settings put global transition_animation_scale 0.0
+          "$ADB" -s "$DEVICE" shell settings put global animator_duration_scale 0.0
+
+          export ANDROID_SERIAL="$DEVICE"
+          gradle --no-daemon :app:connectedDebugAndroidTest
+
+          mkdir -p app/build/reports/card-audit
+          "$ADB" exec-out run-as com.duelmasters.game.debug cat files/card-rules-support-report.csv > app/build/reports/card-audit/card-rules-support-report.csv
+          "$ADB" exec-out run-as com.duelmasters.game.debug cat files/card-rules-support-full-report.csv > app/build/reports/card-audit/card-rules-support-full-report.csv
+          "$ADB" exec-out run-as com.duelmasters.game.debug cat files/card-rules-support-summary.txt > app/build/reports/card-audit/card-rules-support-summary.txt
+          test -s app/build/reports/card-audit/card-rules-support-report.csv
+          test -s app/build/reports/card-audit/card-rules-support-full-report.csv
+          test -s app/build/reports/card-audit/card-rules-support-summary.txt
 
       - name: Verify signed release APK
         if: startsWith(github.ref, 'refs/tags/')
@@ -134,5 +245,6 @@ jobs:
             app/build/test-results/testDebugUnitTest/
             app/build/outputs/androidTest-results/connected/
             app/build/reports/card-audit/
+            app/build/reports/android-emulator/
           if-no-files-found: ignore
           retention-days: 14
